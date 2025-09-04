@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:camera/camera.dart';
 
 import '../../constant/app_color.dart';
+import '../../data/services/attendance_service.dart';
+import '../../data/services/auth_service.dart';
 import '../../widgets/enhanced_face_overlay_painter.dart';
 import 'controllers/recognition.controller.dart';
 
@@ -122,10 +124,51 @@ class RecognitionScreen extends GetView<RecognitionController> {
         _buildInfoOverlay(),
 
         // NEW: Attendance button
-        Obx(
-          () => controller.showAttendanceButton.value
-              ? _buildAttendanceButton()
-              : SizedBox.shrink(),
+        // Obx(
+        //   () => controller.autoAttendanceCountdown.value > 0
+        //       ? _buildAutoAttendanceCountdown()
+        //       : SizedBox.shrink(),
+        // ),
+
+        // Di _buildCameraView() Stack children, tambahkan:
+        Positioned(
+          bottom: 100,
+          right: 16,
+          child: FloatingActionButton(
+            mini: true,
+            backgroundColor: Colors.orange,
+            onPressed: () async {
+              print("=== API TEST START ===");
+
+              // Test 1: Check employee data
+              final employees =
+                  controller.employeeService.employeesWithEmbedding;
+              print("Employees loaded: ${employees.length}");
+              for (var emp in employees.take(3)) {
+                print("- ${emp.name} (ID: ${emp.id})");
+              }
+
+              // Test 2: Check auth token
+              print("Auth token: ${Get.find<AuthService>().authToken.value}");
+
+              // Test 3: Check user status API
+              if (employees.isNotEmpty) {
+                final testId = employees.first.id;
+                print("Testing user status for ID: $testId");
+                final attendanceService = Get.find<AttendanceService>();
+                final status = await attendanceService.getUserStatus(testId);
+                print("User status result: $status");
+                if (status != null) {
+                  print("Can checkin: ${status.canCheckin}");
+                  print("Can checkout: ${status.canCheckout}");
+                  print("Last action: ${status.lastAction}");
+                }
+              }
+
+              print("=== API TEST END ===");
+            },
+            child: Icon(Icons.api, color: Colors.white),
+          ),
         ),
       ],
     );
@@ -409,66 +452,125 @@ class RecognitionScreen extends GetView<RecognitionController> {
   }
 
   // NEW: Attendance button
-  Widget _buildAttendanceButton() {
-    return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 20,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColor.kSuccessGreen, AppColor.kSuccessGreenDark],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColor.kSuccessGreen.withValues(alpha: 0.4),
-              blurRadius: 15,
-              spreadRadius: 2,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              controller.handleAttendanceAction();
-              print("=== DEBUG INFO ===");
-              print(
-                "Employees total: ${controller.employeeService.employees.length}",
-              );
-              print(
-                "With embedding: ${controller.employeeService.employeesWithEmbedding.length}",
-              );
-              print(
-                "Last sync: ${controller.employeeService.getSyncStatusInfo()}",
-              );
-            },
 
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.fingerprint, color: Colors.white, size: 24),
-                  SizedBox(width: 12),
-                  Expanded(
+  Widget _buildAutoAttendanceCountdown() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.8),
+        child: Center(
+          child: Container(
+            padding: EdgeInsets.all(24),
+            margin: EdgeInsets.symmetric(horizontal: 32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColor.kCyanPrimary, AppColor.kCyanSecondary],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColor.kCyanPrimary.withValues(alpha: 0.4),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Countdown circle
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Center(
                     child: Obx(
                       () => Text(
-                        controller.attendanceButtonText.value,
+                        controller.autoAttendanceCountdown.value.toString(),
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 48,
                           fontWeight: FontWeight.bold,
+                          color: AppColor.kCyanPrimary,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
+                ),
+
+                SizedBox(height: 20),
+
+                // Employee info
+                if (controller.pendingEmployee != null) ...[
+                  Text(
+                    'Employee Detected',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    controller.pendingEmployee!.name,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    controller.pendingEmployee!.departmentName,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 20),
                 ],
-              ),
+
+                // Auto message
+                Text(
+                  'Proceeding to attendance in...',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 14,
+                  ),
+                ),
+
+                SizedBox(height: 16),
+
+                // Cancel button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: controller.cancelAutoAttendance,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: Colors.white, width: 1),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

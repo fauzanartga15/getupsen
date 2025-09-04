@@ -9,7 +9,9 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 
 import '../../../data/models/employee_model.dart';
+import '../../../data/services/attendance_service.dart';
 import '../../../data/services/employee_service.dart';
+import '../../../infrastructure/navigation/routes.dart';
 import '../../../services/camera_service.dart';
 import '../../../services/face_recognition_service.dart';
 import '../../../utils/snackbar_helper.dart';
@@ -21,6 +23,7 @@ class RecognitionController extends GetxController {
   final FaceRecognitionService _faceRecognitionService =
       FaceRecognitionService();
   late final FaceDetector _faceDetector;
+  final AttendanceService _attendanceService = Get.find<AttendanceService>();
 
   // Reactive variables
   var isInitialized = false.obs;
@@ -53,6 +56,12 @@ class RecognitionController extends GetxController {
   static const int detectionIntervalMs = 100;
   static const int recognitionIntervalMs = 1000;
   static const double confidenceThreshold = 75.0; // Increased to 85%
+
+  // NEW: Auto-attendance variables
+  var isAutoAttendanceEnabled = true.obs;
+  var autoAttendanceCountdown = 0.obs;
+  Timer? _autoAttendanceTimer;
+  EmployeeModel? pendingEmployee;
 
   @override
   void onInit() {
@@ -193,80 +202,6 @@ class RecognitionController extends GetxController {
       }
     } catch (e) {
       print("Employee recognition error: $e");
-    }
-  }
-
-  void _stopDetection() {
-    _detectionTimer?.cancel();
-    _detectionTimer = null;
-    // Hapus _recognitionTimer?.cancel() karena tidak ada lagi
-
-    isDetecting(false);
-    faces.clear();
-    faceNames.clear();
-    faceConfidences.clear();
-    isRecognized.clear();
-    recognizedEmployees.clear();
-    selectedFaceIndex.value = -1;
-    showAttendanceButton.value = false;
-
-    print("Face detection stopped");
-  }
-
-  // NEW: Recognize employee face
-  Future<void> _recognizeEmployeeFace(
-    int faceIndex,
-    Face face,
-    img.Image originalImage,
-  ) async {
-    try {
-      // Skip if already high confidence
-      if (faceConfidences[faceIndex] != null &&
-          faceConfidences[faceIndex]! > 90.0) {
-        return;
-      }
-
-      // Crop face
-      final faceBytes = _cropFaceFromImage(face, originalImage);
-      if (faceBytes == null) {
-        _setUnknownFace(faceIndex);
-        return;
-      }
-
-      // Generate embedding
-      final embedding = await _faceRecognitionService.generateEmbedding(
-        faceBytes,
-      );
-      if (embedding == null) {
-        _setUnknownFace(faceIndex);
-        return;
-      }
-
-      // Match dengan employees
-      final matchResult = employeeService.findEmployeeByEmbedding(
-        embedding,
-        confidenceThreshold,
-      );
-
-      if (matchResult != null) {
-        final employee = matchResult['employee'] as EmployeeModel;
-        final confidence = matchResult['confidence'] as double;
-
-        // Update face data
-        faceNames[faceIndex] = employee.name;
-        faceConfidences[faceIndex] = confidence;
-        isRecognized[faceIndex] = true;
-        recognizedEmployees[faceIndex] = employee;
-
-        print(
-          "Employee recognized: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
-        );
-      } else {
-        _setUnknownFace(faceIndex);
-      }
-    } catch (e) {
-      print("Error recognizing employee face $faceIndex: $e");
-      _setUnknownFace(faceIndex);
     }
   }
 
@@ -450,10 +385,300 @@ class RecognitionController extends GetxController {
     return Size(previewSize?.height ?? 0, previewSize?.width ?? 0);
   }
 
+  Future<void> _recognizeEmployeeFace(
+    int faceIndex,
+    Face face,
+    img.Image originalImage,
+  ) async {
+    try {
+      // Skip if already high confidence
+      if (faceConfidences[faceIndex] != null &&
+          faceConfidences[faceIndex]! > 90.0) {
+        return;
+      }
+
+      // Crop face
+      final faceBytes = _cropFaceFromImage(face, originalImage);
+      if (faceBytes == null) {
+        _setUnknownFace(faceIndex);
+        return;
+      }
+
+      // Generate embedding
+      final embedding = await _faceRecognitionService.generateEmbedding(
+        faceBytes,
+      );
+      if (embedding == null) {
+        _setUnknownFace(faceIndex);
+        return;
+      }
+
+      // Match dengan employees
+      final matchResult = employeeService.findEmployeeByEmbedding(
+        embedding,
+        confidenceThreshold,
+      );
+
+      if (matchResult != null) {
+        final employee = matchResult['employee'] as EmployeeModel;
+        final confidence = matchResult['confidence'] as double;
+
+        // Update face data
+        faceNames[faceIndex] = employee.name;
+        faceConfidences[faceIndex] = confidence;
+        isRecognized[faceIndex] = true;
+        recognizedEmployees[faceIndex] = employee;
+
+        print(
+          "Employee recognized: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
+        );
+
+        // NEW: Trigger auto-attendance
+        _triggerAutoAttendance(employee);
+      } else {
+        _setUnknownFace(faceIndex);
+      }
+    } catch (e) {
+      print("Error recognizing employee face $faceIndex: $e");
+      _setUnknownFace(faceIndex);
+    }
+  }
+
+  void _triggerAutoAttendance(EmployeeModel employee) {
+    if (!isAutoAttendanceEnabled.value) return;
+    if (_autoAttendanceTimer != null) return; // Prevent multiple triggers
+
+    pendingEmployee = employee;
+    autoAttendanceCountdown.value = 3; // 3 second countdown
+
+    print("🕐 Auto-attendance triggered for: ${employee.name}");
+
+    _autoAttendanceTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      autoAttendanceCountdown.value--;
+
+      if (autoAttendanceCountdown.value <= 0) {
+        timer.cancel();
+        _autoAttendanceTimer = null;
+        _processAutoAttendance();
+      }
+    });
+  }
+
+  // NEW: Process auto-attendance
+  Future<void> _processAutoAttendance() async {
+    // Simpan reference employee sebelum check null
+    final employee = pendingEmployee;
+
+    if (employee == null) {
+      print("❌ No pending employee for auto-attendance");
+      return;
+    }
+
+    try {
+      print("🤖 Processing auto-attendance for: ${employee.name}");
+
+      _stopDetection();
+
+      final userStatus = await _attendanceService.getUserStatus(employee.id);
+
+      if (userStatus == null) {
+        print("❌ Failed to get user status");
+        SnackbarHelper.showError('Failed to get user status');
+        _restartDetection();
+        return;
+      }
+
+      print(
+        "✅ User status: canCheckin=${userStatus.canCheckin}, canCheckout=${userStatus.canCheckout}",
+      );
+
+      if (!userStatus.canPerformAttendance) {
+        _showAlreadyCompletedDialog(employee); // Pass employee parameter
+        return;
+      }
+
+      // Navigate to confirmation dengan employee reference yang aman
+      Get.toNamed(
+        Routes.ATTENDANCE_CONFIRMATION,
+        arguments: {
+          'employee': employee,
+          'userStatus': userStatus,
+          'confidence': faceConfidences[selectedFaceIndex.value] ?? 0.0,
+        },
+      );
+    } catch (e, stackTrace) {
+      print("❌ Error processing auto-attendance: $e");
+      print("❌ Stack trace: $stackTrace");
+      SnackbarHelper.showError('Attendance process failed');
+      _restartDetection();
+    } finally {
+      // Clear pending employee setelah selesai
+      pendingEmployee = null;
+    }
+  }
+
+  // NEW: Cancel auto-attendance
+  void cancelAutoAttendance() {
+    _autoAttendanceTimer?.cancel();
+    _autoAttendanceTimer = null;
+    autoAttendanceCountdown.value = 0;
+    pendingEmployee = null;
+    print("❌ Auto-attendance cancelled");
+    _restartDetection(); // Restart detection after cancel
+  }
+
+  // NEW: Show already completed dialog
+  void _showAlreadyCompletedDialog(EmployeeModel employee) {
+    final employee = pendingEmployee!;
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.orange.shade50, Colors.orange.shade100],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Employee avatar
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange, Colors.deepOrange],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    employee.name.split(' ').take(2).map((e) => e[0]).join(),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 16),
+
+              Text(
+                'Attendance Complete',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+
+              SizedBox(height: 8),
+
+              Text(
+                '${employee.name}\n${employee.departmentName}',
+                style: TextStyle(fontSize: 14, color: Colors.orange.shade700),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: 16),
+
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'You have already completed attendance for today',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Get.back();
+                    _restartDetection();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Back to Detection',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+
+    // Auto-close after 10 seconds
+    Timer(Duration(seconds: 10), () {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+        _restartDetection();
+      }
+    });
+  }
+
+  // NEW: Restart detection
+  void _restartDetection() {
+    Future.delayed(Duration(milliseconds: 500), () {
+      if (!isDetecting.value) {
+        _startDetection();
+      }
+    });
+  }
+
+  void _stopDetection() {
+    _detectionTimer?.cancel();
+    _detectionTimer = null;
+
+    // Cancel auto-attendance
+    cancelAutoAttendance();
+
+    isDetecting(false);
+    faces.clear();
+    faceNames.clear();
+    faceConfidences.clear();
+    isRecognized.clear();
+    recognizedEmployees.clear();
+    selectedFaceIndex.value = -1;
+    showAttendanceButton.value = false;
+
+    print("Face detection stopped");
+  }
+
   @override
   void onClose() {
     print("Disposing recognition controller...");
     _stopDetection();
+    cancelAutoAttendance();
     _faceDetector.close();
     _faceRecognitionService.dispose();
     _cameraService.dispose();

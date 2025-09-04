@@ -1,5 +1,5 @@
-// File: lib/infrastructure/navigation/navigation.dart (Updated)
 import 'package:flutter/material.dart';
+
 import 'package:get/get.dart';
 
 import '../../config.dart';
@@ -7,6 +7,8 @@ import '../../presentation/screens.dart';
 import 'bindings/controllers/controllers_bindings.dart';
 import 'middlewares/auth_middleware.dart';
 import 'routes.dart';
+
+// File: lib/infrastructure/navigation/navigation.dart (Updated)
 
 class EnvironmentsBadge extends StatelessWidget {
   final Widget child;
@@ -57,5 +59,10 @@ class Nav {
     //   binding: AttendanceCardControllerBinding(),
     //   middlewares: [AuthMiddleware()],
     // ),
+    GetPage(
+      name: Routes.ATTENDANCE_CONFIRMATION,
+      page: () => const AttendanceConfirmationScreen(),
+      binding: AttendanceConfirmationControllerBinding(),
+    ),
   ];
 }

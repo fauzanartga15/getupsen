@@ -1,6 +1,8 @@
-// File: lib/infrastructure/navigation/routes.dart (Updated)
 import 'package:get/get.dart';
+
 import '../../data/services/auth_service.dart';
+
+// File: lib/infrastructure/navigation/routes.dart (Updated)
 
 class Routes {
   static Future<String> get initialRoute async {
@@ -18,8 +20,9 @@ class Routes {
     }
   }
 
-  static const LOGIN = '/login';
-  static const HOME = '/home';
-  static const RECOGNITION = '/recognition';
   static const ATTENDANCE_CARD = '/attendance-card';
+  static const HOME = '/home';
+  static const LOGIN = '/login';
+  static const RECOGNITION = '/recognition';
+  static const ATTENDANCE_CONFIRMATION = '/attendance-confirmation';
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'data/services/attendance_service.dart';
 import 'data/services/auth_service.dart';
 import 'data/services/employee_service.dart';
 import 'infrastructure/navigation/navigation.dart';
@@ -22,6 +23,7 @@ void main() async {
   print("🚀 Initializing AuthService...");
   Get.put<AuthService>(AuthService(), permanent: true);
   Get.put<EmployeeService>(EmployeeService(), permanent: true);
+  Get.put<AttendanceService>(AttendanceService(), permanent: true);
 
   // Wait for AuthService to load stored data
   await Future.delayed(Duration(milliseconds: 100));
