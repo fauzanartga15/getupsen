@@ -49,13 +49,10 @@ class RecognitionController extends GetxController {
 
   // Detection control
   Timer? _detectionTimer;
-  Timer? _recognitionTimer;
   bool _isProcessingFrame = false;
-  bool _isProcessingRecognition = false;
-  bool _isTakingPicture = false;
   static const int detectionIntervalMs = 100;
   static const int recognitionIntervalMs = 1000;
-  static const double confidenceThreshold = 85.0; // Increased to 85%
+  static const double confidenceThreshold = 75.0; // Increased to 85%
 
   @override
   void onInit() {
@@ -122,57 +119,29 @@ class RecognitionController extends GetxController {
 
   void _startDetection() {
     if (!isInitialized.value) return;
-
     isDetecting(true);
 
-    // Start face detection timer
+    // Single timer untuk detection + recognition sekaligus
     _detectionTimer = Timer.periodic(
-      Duration(milliseconds: detectionIntervalMs),
-      (_) => _processFrame(),
+      Duration(milliseconds: 500), // Lebih lambat untuk avoid conflict
+      (_) => _processFrameAndRecognition(),
     );
-
-    // Start face recognition timer
-    if (isRecognitionEnabled.value) {
-      _recognitionTimer = Timer.periodic(
-        Duration(milliseconds: recognitionIntervalMs),
-        (_) => _processRecognition(),
-      );
-    }
 
     print("Face detection and recognition started");
   }
 
-  void _stopDetection() {
-    _detectionTimer?.cancel();
-    _detectionTimer = null;
-
-    _recognitionTimer?.cancel();
-    _recognitionTimer = null;
-
-    isDetecting(false);
-    faces.clear();
-    faceNames.clear();
-    faceConfidences.clear();
-    isRecognized.clear();
-    recognizedEmployees.clear(); // NEW: Clear employee data
-    selectedFaceIndex.value = -1; // NEW: Reset selection
-    showAttendanceButton.value = false; // NEW: Hide button
-    print("Face detection stopped");
-  }
-
-  // UNCHANGED: Original face detection logic
-  Future<void> _processFrame() async {
+  Future<void> _processFrameAndRecognition() async {
     if (_isProcessingFrame || !isInitialized.value) return;
     if (_cameraService.controller == null) return;
-    if (_isTakingPicture) return;
 
     try {
       _isProcessingFrame = true;
-      _isTakingPicture = true;
 
+      // Take single photo for both detection and recognition
       final XFile imageFile = await _cameraService.controller!.takePicture();
-      final InputImage inputImage = InputImage.fromFilePath(imageFile.path);
 
+      // Step 1: Face detection
+      final InputImage inputImage = InputImage.fromFilePath(imageFile.path);
       final List<Face> detectedFaces = await _faceDetector.processImage(
         inputImage,
       );
@@ -180,54 +149,68 @@ class RecognitionController extends GetxController {
       faces.assignAll(detectedFaces);
       _updateDetectionStats(detectedFaces.length);
 
+      // Step 2: Employee recognition (only if needed)
+      if (isRecognitionEnabled.value &&
+          detectedFaces.isNotEmpty &&
+          _faceRecognitionService.isModelLoaded &&
+          employeeService.employeesWithEmbedding.isNotEmpty) {
+        await _recognizeAllEmployeeFaces(imageFile.path, detectedFaces);
+      }
+
+      // Cleanup
       final tempFile = File(imageFile.path);
       if (await tempFile.exists()) {
         await tempFile.delete();
       }
+
+      // Update UI
+      _updateRecognitionStats();
+      _updateAttendanceButton();
     } catch (e) {
       print("Frame processing error: $e");
     } finally {
       _isProcessingFrame = false;
-      _isTakingPicture = false; // Reset both flags
     }
   }
 
-  // ENHANCED: Employee recognition with face matching
-  Future<void> _processRecognition() async {
-    if (_isProcessingRecognition || !isInitialized.value) return;
-    if (_cameraService.controller == null || faces.isEmpty) return;
-    if (!_faceRecognitionService.isModelLoaded ||
-        employeeService.employeesWithEmbedding.isEmpty)
-      return;
-
+  Future<void> _recognizeAllEmployeeFaces(
+    String imagePath,
+    List<Face> detectedFaces,
+  ) async {
     try {
-      _isProcessingRecognition = true;
-      print("Starting employee recognition for ${faces.length} faces...");
+      print(
+        "Starting employee recognition for ${detectedFaces.length} faces...",
+      );
 
-      final XFile imageFile = await _cameraService.controller!.takePicture();
-      final imageBytes = await imageFile.readAsBytes();
+      // Load and decode image once
+      final imageBytes = await File(imagePath).readAsBytes();
       final originalImage = img.decodeImage(imageBytes);
-
       if (originalImage == null) return;
 
       // Process each detected face
-      for (int i = 0; i < faces.length; i++) {
-        await _recognizeEmployeeFace(i, faces[i], originalImage);
-      }
-
-      // Update stats and attendance button
-      _updateRecognitionStats();
-      _updateAttendanceButton();
-
-      final tempFile = File(imageFile.path);
-      if (await tempFile.exists()) {
-        await tempFile.delete();
+      for (int i = 0; i < detectedFaces.length; i++) {
+        await _recognizeEmployeeFace(i, detectedFaces[i], originalImage);
       }
     } catch (e) {
       print("Employee recognition error: $e");
-    } finally {
-      _isProcessingRecognition = false;
     }
+  }
+
+  void _stopDetection() {
+    _detectionTimer?.cancel();
+    _detectionTimer = null;
+    // Hapus _recognitionTimer?.cancel() karena tidak ada lagi
+
+    isDetecting(false);
+    faces.clear();
+    faceNames.clear();
+    faceConfidences.clear();
+    isRecognized.clear();
+    recognizedEmployees.clear();
+    selectedFaceIndex.value = -1;
+    showAttendanceButton.value = false;
+
+    print("Face detection stopped");
   }
 
   // NEW: Recognize employee face
@@ -237,8 +220,60 @@ class RecognitionController extends GetxController {
     img.Image originalImage,
   ) async {
     try {
-      // Crop face from image
+      // Skip if already high confidence
+      if (faceConfidences[faceIndex] != null &&
+          faceConfidences[faceIndex]! > 90.0) {
+        return;
+      }
+
+      // Crop face
+      final faceBytes = _cropFaceFromImage(face, originalImage);
+      if (faceBytes == null) {
+        _setUnknownFace(faceIndex);
+        return;
+      }
+
+      // Generate embedding
+      final embedding = await _faceRecognitionService.generateEmbedding(
+        faceBytes,
+      );
+      if (embedding == null) {
+        _setUnknownFace(faceIndex);
+        return;
+      }
+
+      // Match dengan employees
+      final matchResult = employeeService.findEmployeeByEmbedding(
+        embedding,
+        confidenceThreshold,
+      );
+
+      if (matchResult != null) {
+        final employee = matchResult['employee'] as EmployeeModel;
+        final confidence = matchResult['confidence'] as double;
+
+        // Update face data
+        faceNames[faceIndex] = employee.name;
+        faceConfidences[faceIndex] = confidence;
+        isRecognized[faceIndex] = true;
+        recognizedEmployees[faceIndex] = employee;
+
+        print(
+          "Employee recognized: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
+        );
+      } else {
+        _setUnknownFace(faceIndex);
+      }
+    } catch (e) {
+      print("Error recognizing employee face $faceIndex: $e");
+      _setUnknownFace(faceIndex);
+    }
+  }
+
+  Uint8List? _cropFaceFromImage(Face face, img.Image originalImage) {
+    try {
       final boundingBox = face.boundingBox;
+
       final left = boundingBox.left.toInt().clamp(0, originalImage.width - 1);
       final top = boundingBox.top.toInt().clamp(0, originalImage.height - 1);
       final width = (boundingBox.width.toInt()).clamp(
@@ -258,42 +293,11 @@ class RecognitionController extends GetxController {
         height: height,
       );
       final resizedFace = img.copyResize(croppedFace, width: 112, height: 112);
-      final faceBytes = Uint8List.fromList(img.encodeJpg(resizedFace));
 
-      // Generate embedding
-      final embedding = await _faceRecognitionService.generateEmbedding(
-        faceBytes,
-      );
-      if (embedding == null) {
-        _setUnknownFace(faceIndex);
-        return;
-      }
-
-      // Match with employees
-      final matchResult = employeeService.findEmployeeByEmbedding(
-        embedding,
-        confidenceThreshold,
-      );
-
-      if (matchResult != null) {
-        // Employee recognized
-        final employee = matchResult['employee'] as EmployeeModel;
-        final confidence = matchResult['confidence'] as double;
-
-        faceNames[faceIndex] = employee.name;
-        faceConfidences[faceIndex] = confidence;
-        isRecognized[faceIndex] = true;
-        recognizedEmployees[faceIndex] = employee;
-
-        print(
-          "Employee recognized: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
-        );
-      } else {
-        _setUnknownFace(faceIndex);
-      }
+      return Uint8List.fromList(img.encodeJpg(resizedFace));
     } catch (e) {
-      print("Error recognizing employee face $faceIndex: $e");
-      _setUnknownFace(faceIndex);
+      print("Error cropping face: $e");
+      return null;
     }
   }
 
