@@ -8,12 +8,13 @@ import 'package:get/get.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 
+import '../../../data/models/attendance_result_model.dart';
 import '../../../data/models/employee_model.dart';
 import '../../../data/services/attendance_service.dart';
 import '../../../data/services/employee_service.dart';
 import '../../../infrastructure/navigation/routes.dart';
-import '../../../services/camera_service.dart';
-import '../../../services/face_recognition_service.dart';
+import '../../../data/services/camera_service.dart';
+import '../../../data/services/face_recognition_service.dart';
 import '../../../utils/snackbar_helper.dart';
 
 class RecognitionController extends GetxController {
@@ -465,6 +466,7 @@ class RecognitionController extends GetxController {
   }
 
   // NEW: Process auto-attendance
+  // NEW: Process auto-attendance
   Future<void> _processAutoAttendance() async {
     // Simpan reference employee sebelum check null
     final employee = pendingEmployee;
@@ -475,10 +477,13 @@ class RecognitionController extends GetxController {
     }
 
     try {
-      print("🤖 Processing auto-attendance for: ${employee.name}");
+      print(
+        "🤖 Processing auto-attendance for: ${employee.name} (ID: ${employee.id})",
+      );
 
       _stopDetection();
 
+      // Step 1: Get user status untuk menentukan action
       final userStatus = await _attendanceService.getUserStatus(employee.id);
 
       if (userStatus == null) {
@@ -492,24 +497,71 @@ class RecognitionController extends GetxController {
         "✅ User status: canCheckin=${userStatus.canCheckin}, canCheckout=${userStatus.canCheckout}",
       );
 
+      // Step 2: Check if no action available
       if (!userStatus.canPerformAttendance) {
-        _showAlreadyCompletedDialog(employee); // Pass employee parameter
+        print("ℹ️ No attendance action available for ${employee.name}");
+        _showAlreadyCompletedDialog(employee);
         return;
       }
 
-      // Navigate to confirmation dengan employee reference yang aman
-      Get.toNamed(
-        Routes.ATTENDANCE_CONFIRMATION,
-        arguments: {
-          'employee': employee,
-          'userStatus': userStatus,
-          'confidence': faceConfidences[selectedFaceIndex.value] ?? 0.0,
-        },
-      );
+      // Step 3: Determine and perform action
+      AttendanceResult? result;
+
+      if (userStatus.canCheckin) {
+        print("📝 Performing CHECK-IN for ${employee.name}");
+        result = await _attendanceService.checkIn(employee.id);
+      } else if (userStatus.canCheckout) {
+        print("📝 Performing CHECK-OUT for ${employee.name}");
+        result = await _attendanceService.checkOut(employee.id);
+      }
+
+      // Step 4: Handle result
+      if (result != null) {
+        print("✅ Attendance API Response:");
+        print("   Status: ${result.status}");
+        print("   Message: ${result.message}");
+        print("   Title: ${result.title}");
+        print("   Next Action: ${result.nextAction}");
+
+        if (result.attendance != null) {
+          print("   Attendance ID: ${result.attendance!.userId}");
+          print("   Type: ${result.attendance!.actionText}");
+          print("   Time: ${result.attendance!.timeText}");
+          print("   Status: ${result.attendance!.statusText}");
+        }
+
+        if (result.user != null) {
+          print(
+            "   User: ${result.user!.name} (${result.user!.positionWithDepartment})",
+          );
+        }
+
+        // Show success message
+        if (result.isSuccess) {
+          SnackbarHelper.showSuccess(result.message, title: result.title);
+
+          // Optional: Show company info if available
+          if (result.companyInfo != null) {
+            print("   Company: ${result.companyInfo!.name}");
+            print("   Working Hours: ${result.companyInfo!.workingHours}");
+          }
+        } else {
+          SnackbarHelper.showError(result.message, title: result.title);
+        }
+
+        // Wait a bit then restart detection
+        Future.delayed(Duration(seconds: 3), () {
+          _restartDetection();
+        });
+      } else {
+        print("❌ No response from attendance API");
+        SnackbarHelper.showError('Attendance request failed');
+        _restartDetection();
+      }
     } catch (e, stackTrace) {
       print("❌ Error processing auto-attendance: $e");
       print("❌ Stack trace: $stackTrace");
-      SnackbarHelper.showError('Attendance process failed');
+      SnackbarHelper.showError('Attendance process failed: ${e.toString()}');
       _restartDetection();
     } finally {
       // Clear pending employee setelah selesai
@@ -528,9 +580,8 @@ class RecognitionController extends GetxController {
   }
 
   // NEW: Show already completed dialog
+  // NEW: Show already completed dialog
   void _showAlreadyCompletedDialog(EmployeeModel employee) {
-    final employee = pendingEmployee!;
-
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -672,6 +723,23 @@ class RecognitionController extends GetxController {
     showAttendanceButton.value = false;
 
     print("Face detection stopped");
+  }
+
+  // Debug method - tambahkan di RecognitionController
+  void debugEmployeeInfo() {
+    print("=== EMPLOYEE DEBUG INFO ===");
+    final employees = employeeService.employeesWithEmbedding;
+    print("Total employees with embedding: ${employees.length}");
+
+    for (var emp in employees) {
+      print("Employee: ${emp.name}");
+      print("  ID: ${emp.id}");
+      print("  Department: ${emp.departmentName}");
+      print("  Has embedding: ${emp.hasFaceEmbedding}");
+      print("  Embedding length: ${emp.embeddingVector.length}");
+      print("---");
+    }
+    print("=== END DEBUG INFO ===");
   }
 
   @override

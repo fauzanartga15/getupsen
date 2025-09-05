@@ -151,10 +151,18 @@ class RecognitionScreen extends GetView<RecognitionController> {
               // Test 2: Check auth token
               print("Auth token: ${Get.find<AuthService>().authToken.value}");
 
-              // Test 3: Check user status API
+              // Test 3: Check user status API - GUNAKAN ID YANG BENAR
               if (employees.isNotEmpty) {
-                final testId = employees.first.id;
-                print("Testing user status for ID: $testId");
+                // Cari enkastaff atau gunakan ID yang sesuai
+                final targetEmployee = employees.firstWhere(
+                  (emp) => emp.name.toLowerCase().contains('enkastaff'),
+                  orElse: () => employees.first,
+                );
+                final testId = targetEmployee.id;
+                print(
+                  "Testing user status for: ${targetEmployee.name} (ID: $testId)",
+                );
+
                 final attendanceService = Get.find<AttendanceService>();
                 final status = await attendanceService.getUserStatus(testId);
                 print("User status result: $status");
@@ -357,6 +365,7 @@ class RecognitionScreen extends GetView<RecognitionController> {
           ),
           onPressed: () {
             if (controller.isInitialized.value) {
+              controller.debugEmployeeInfo();
               controller.toggleRecognition();
             }
           },
