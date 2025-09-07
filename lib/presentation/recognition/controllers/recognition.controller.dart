@@ -1,4 +1,4 @@
-// File: lib/presentation/recognition/controllers/recognition.controller.dart (Enhanced)
+// File: lib/presentation/recognition/controllers/recognition.controller.dart (Fixed Version)
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -11,10 +11,10 @@ import 'package:image/image.dart' as img;
 import '../../../data/models/attendance_result_model.dart';
 import '../../../data/models/employee_model.dart';
 import '../../../data/services/attendance_service.dart';
-import '../../../data/services/employee_service.dart';
-import '../../../infrastructure/navigation/routes.dart';
 import '../../../data/services/camera_service.dart';
+import '../../../data/services/employee_service.dart';
 import '../../../data/services/face_recognition_service.dart';
+import '../../../infrastructure/navigation/routes.dart';
 import '../../../utils/snackbar_helper.dart';
 
 class RecognitionController extends GetxController {
@@ -33,36 +33,34 @@ class RecognitionController extends GetxController {
   var faceNames = <int, String>{}.obs;
   var faceConfidences = <int, double>{}.obs;
   var isRecognized = <int, bool>{}.obs;
-  var recognizedEmployees =
-      <int, EmployeeModel?>{}.obs; // NEW: Store employee data
-  var selectedFaceIndex = (-1).obs; // NEW: For multiple face selection
+  var recognizedEmployees = <int, EmployeeModel?>{}.obs;
+  var selectedFaceIndex = (-1).obs; // TETAP ADA - untuk face selection
   var errorMessage = ''.obs;
   var detectionStats = ''.obs;
 
   // Camera info
   var cameraInfo = ''.obs;
-  var isBackCamera = true.obs;
+  var isBackCamera =
+      false.obs; // TETAP ADA - tapi selalu false (front camera only)
 
   // Face recognition control
   var isRecognitionEnabled = true.obs;
   var recognitionStats = ''.obs;
 
-  // Attendance button control
+  // Attendance button control - TETAP ADA
   var showAttendanceButton = false.obs;
-  var attendanceButtonText = 'Check In'.obs;
 
-  // Detection control
-  Timer? _detectionTimer;
-  bool _isProcessingFrame = false;
-  static const int detectionIntervalMs = 100;
-  static const int recognitionIntervalMs = 1000;
-  static const double confidenceThreshold = 75.0; // Increased to 85%
-
-  // NEW: Auto-attendance variables
+  // Auto-attendance variables
   var isAutoAttendanceEnabled = true.obs;
   var autoAttendanceCountdown = 0.obs;
   Timer? _autoAttendanceTimer;
   EmployeeModel? pendingEmployee;
+
+  // Detection control
+  Timer? _detectionTimer;
+  bool _isProcessingFrame = false;
+  static const int detectionIntervalMs = 500;
+  static const double confidenceThreshold = 75.0;
 
   @override
   void onInit() {
@@ -104,15 +102,16 @@ class RecognitionController extends GetxController {
       errorMessage('');
       print("Starting camera initialization...");
 
-      final success = await _cameraService.initialize();
+      // Initialize front camera only
+      final success = await _cameraService.initializeFrontCamera();
       if (success) {
         isInitialized(true);
         _updateCameraInfo();
         _startDetection();
-        print("Camera initialized successfully");
+        print("Front camera initialized successfully");
       } else {
-        errorMessage('Gagal menginisialisasi kamera');
-        print("Camera initialization failed");
+        errorMessage('Failed to initialize front camera');
+        print("Front camera initialization failed");
       }
     } catch (e) {
       errorMessage('Error: ${e.toString()}');
@@ -122,18 +121,15 @@ class RecognitionController extends GetxController {
 
   void _updateCameraInfo() {
     cameraInfo(_cameraService.getCameraInfo());
-    isBackCamera(
-      _cameraService.currentCamera?.lensDirection == CameraLensDirection.back,
-    );
+    isBackCamera(false); // Always false - front camera only
   }
 
   void _startDetection() {
     if (!isInitialized.value) return;
     isDetecting(true);
 
-    // Single timer untuk detection + recognition sekaligus
     _detectionTimer = Timer.periodic(
-      Duration(milliseconds: 500), // Lebih lambat untuk avoid conflict
+      Duration(milliseconds: detectionIntervalMs),
       (_) => _processFrameAndRecognition(),
     );
 
@@ -147,7 +143,7 @@ class RecognitionController extends GetxController {
     try {
       _isProcessingFrame = true;
 
-      // Take single photo for both detection and recognition
+      // Take photo for detection and recognition
       final XFile imageFile = await _cameraService.controller!.takePicture();
 
       // Step 1: Face detection
@@ -159,7 +155,7 @@ class RecognitionController extends GetxController {
       faces.assignAll(detectedFaces);
       _updateDetectionStats(detectedFaces.length);
 
-      // Step 2: Employee recognition (only if needed)
+      // Step 2: Employee recognition
       if (isRecognitionEnabled.value &&
           detectedFaces.isNotEmpty &&
           _faceRecognitionService.isModelLoaded &&
@@ -173,9 +169,8 @@ class RecognitionController extends GetxController {
         await tempFile.delete();
       }
 
-      // Update UI
       _updateRecognitionStats();
-      _updateAttendanceButton();
+      _updateAttendanceButton(); // Update button visibility
     } catch (e) {
       print("Frame processing error: $e");
     } finally {
@@ -192,17 +187,74 @@ class RecognitionController extends GetxController {
         "Starting employee recognition for ${detectedFaces.length} faces...",
       );
 
-      // Load and decode image once
       final imageBytes = await File(imagePath).readAsBytes();
       final originalImage = img.decodeImage(imageBytes);
       if (originalImage == null) return;
 
-      // Process each detected face
       for (int i = 0; i < detectedFaces.length; i++) {
         await _recognizeEmployeeFace(i, detectedFaces[i], originalImage);
       }
     } catch (e) {
       print("Employee recognition error: $e");
+    }
+  }
+
+  Future<void> _recognizeEmployeeFace(
+    int faceIndex,
+    Face face,
+    img.Image originalImage,
+  ) async {
+    try {
+      // Skip if already high confidence
+      if (faceConfidences[faceIndex] != null &&
+          faceConfidences[faceIndex]! > 90.0) {
+        return;
+      }
+
+      // Crop face
+      final faceBytes = _cropFaceFromImage(face, originalImage);
+      if (faceBytes == null) {
+        _setUnknownFace(faceIndex);
+        return;
+      }
+
+      // Generate embedding
+      final embedding = await _faceRecognitionService.generateEmbedding(
+        faceBytes,
+      );
+      if (embedding == null) {
+        _setUnknownFace(faceIndex);
+        return;
+      }
+
+      // Match with employees
+      final matchResult = employeeService.findEmployeeByEmbedding(
+        embedding,
+        confidenceThreshold,
+      );
+
+      if (matchResult != null) {
+        final employee = matchResult['employee'] as EmployeeModel;
+        final confidence = matchResult['confidence'] as double;
+
+        // Update face data
+        faceNames[faceIndex] = employee.name;
+        faceConfidences[faceIndex] = confidence;
+        isRecognized[faceIndex] = true;
+        recognizedEmployees[faceIndex] = employee;
+
+        print(
+          "Employee recognized: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
+        );
+
+        // Trigger auto-attendance
+        _triggerAutoAttendance(employee);
+      } else {
+        _setUnknownFace(faceIndex);
+      }
+    } catch (e) {
+      print("Error recognizing employee face $faceIndex: $e");
+      _setUnknownFace(faceIndex);
     }
   }
 
@@ -251,7 +303,17 @@ class RecognitionController extends GetxController {
     recognitionStats('${recognizedCount}/${faces.length} employees recognized');
   }
 
-  // NEW: Update attendance button visibility
+  void _updateDetectionStats(int faceCount) {
+    if (faceCount == 0) {
+      detectionStats('No faces detected');
+    } else if (faceCount == 1) {
+      detectionStats('1 face detected');
+    } else {
+      detectionStats('$faceCount faces detected');
+    }
+  }
+
+  // Update attendance button visibility
   void _updateAttendanceButton() {
     final hasRecognizedEmployee = recognizedEmployees.values.any(
       (emp) => emp != null,
@@ -267,182 +329,26 @@ class RecognitionController extends GetxController {
           }
         }
       }
-
       showAttendanceButton.value = true;
-      _updateAttendanceButtonText();
     } else {
       showAttendanceButton.value = false;
       selectedFaceIndex.value = -1;
     }
   }
 
-  // NEW: Update attendance button text
-  void _updateAttendanceButtonText() {
-    if (selectedFaceIndex.value >= 0 &&
-        recognizedEmployees[selectedFaceIndex.value] != null) {
-      final employee = recognizedEmployees[selectedFaceIndex.value]!;
-      attendanceButtonText.value = 'Check Attendance - ${employee.name}';
-    } else {
-      attendanceButtonText.value = 'Check Attendance';
-    }
-  }
-
-  // NEW: Handle face selection for multiple faces
+  // Handle face selection for multiple faces
   void selectFace(int faceIndex) {
     if (recognizedEmployees[faceIndex] != null) {
       selectedFaceIndex.value = faceIndex;
-      _updateAttendanceButtonText();
       print("Selected face: ${faceNames[faceIndex]}");
     }
   }
 
-  // NEW: Handle attendance button press
-  void handleAttendanceAction() {
-    if (selectedFaceIndex.value >= 0 &&
-        recognizedEmployees[selectedFaceIndex.value] != null) {
-      final employee = recognizedEmployees[selectedFaceIndex.value]!;
-      print("Starting attendance process for: ${employee.name}");
-
-      // TODO: Navigate to attendance confirmation screen
-      SnackbarHelper.showInfo(
-        'Attendance process for ${employee.name} - Coming soon',
-      );
-    }
-  }
-
-  void _updateDetectionStats(int faceCount) {
-    if (faceCount == 0) {
-      detectionStats('Tidak ada wajah terdeteksi');
-    } else if (faceCount == 1) {
-      detectionStats('1 wajah terdeteksi');
-    } else {
-      detectionStats('$faceCount wajah terdeteksi');
-    }
-  }
-
-  // UNCHANGED: Camera controls
+  // DUMMY switch camera method (tidak melakukan apa-apa karena hanya front camera)
   Future<void> switchCamera() async {
-    try {
-      if (!isInitialized.value) return;
-
-      _stopDetection();
-      isInitialized(false);
-
-      final success = await _cameraService.switchCamera();
-
-      if (success) {
-        await Future.delayed(Duration(milliseconds: 500));
-        _updateCameraInfo();
-        isInitialized(true);
-        await Future.delayed(Duration(milliseconds: 200));
-        _startDetection();
-      } else {
-        isInitialized(true);
-        _startDetection();
-        SnackbarHelper.showError('Failed to switch camera');
-      }
-    } catch (e) {
-      isInitialized(true);
-      _startDetection();
-      SnackbarHelper.showError('Camera switch error: ${e.toString()}');
-    }
-  }
-
-  void toggleDetection() {
-    if (isDetecting.value) {
-      _stopDetection();
-    } else {
-      _startDetection();
-    }
-  }
-
-  void toggleRecognition() {
-    isRecognitionEnabled(!isRecognitionEnabled.value);
-
-    if (isDetecting.value) {
-      _stopDetection();
-      _startDetection();
-    }
-  }
-
-  // Getters (UNCHANGED)
-  CameraController? get cameraController => _cameraService.controller;
-
-  Size get previewSize {
-    if (!isInitialized.value) return Size.zero;
-    final controller = _cameraService.controller;
-    if (controller == null) return Size.zero;
-    return Size(
-      controller.value.previewSize?.height ?? 0,
-      controller.value.previewSize?.width ?? 0,
-    );
-  }
-
-  Size get imageSize {
-    if (!isInitialized.value) return Size.zero;
-    final controller = _cameraService.controller;
-    if (controller == null) return Size.zero;
-    final previewSize = controller.value.previewSize;
-    return Size(previewSize?.height ?? 0, previewSize?.width ?? 0);
-  }
-
-  Future<void> _recognizeEmployeeFace(
-    int faceIndex,
-    Face face,
-    img.Image originalImage,
-  ) async {
-    try {
-      // Skip if already high confidence
-      if (faceConfidences[faceIndex] != null &&
-          faceConfidences[faceIndex]! > 90.0) {
-        return;
-      }
-
-      // Crop face
-      final faceBytes = _cropFaceFromImage(face, originalImage);
-      if (faceBytes == null) {
-        _setUnknownFace(faceIndex);
-        return;
-      }
-
-      // Generate embedding
-      final embedding = await _faceRecognitionService.generateEmbedding(
-        faceBytes,
-      );
-      if (embedding == null) {
-        _setUnknownFace(faceIndex);
-        return;
-      }
-
-      // Match dengan employees
-      final matchResult = employeeService.findEmployeeByEmbedding(
-        embedding,
-        confidenceThreshold,
-      );
-
-      if (matchResult != null) {
-        final employee = matchResult['employee'] as EmployeeModel;
-        final confidence = matchResult['confidence'] as double;
-
-        // Update face data
-        faceNames[faceIndex] = employee.name;
-        faceConfidences[faceIndex] = confidence;
-        isRecognized[faceIndex] = true;
-        recognizedEmployees[faceIndex] = employee;
-
-        print(
-          "Employee recognized: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
-        );
-
-        // NEW: Trigger auto-attendance
-        _triggerAutoAttendance(employee);
-      } else {
-        _setUnknownFace(faceIndex);
-      }
-    } catch (e) {
-      print("Error recognizing employee face $faceIndex: $e");
-      _setUnknownFace(faceIndex);
-    }
+    // Do nothing - only front camera available
+    print("Switch camera disabled - front camera only");
+    SnackbarHelper.showInfo('Only front camera is available');
   }
 
   void _triggerAutoAttendance(EmployeeModel employee) {
@@ -453,6 +359,9 @@ class RecognitionController extends GetxController {
     autoAttendanceCountdown.value = 3; // 3 second countdown
 
     print("🕐 Auto-attendance triggered for: ${employee.name}");
+
+    // STOP DETECTION saat countdown dimulai
+    _stopDetectionTemporarily();
 
     _autoAttendanceTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       autoAttendanceCountdown.value--;
@@ -465,10 +374,15 @@ class RecognitionController extends GetxController {
     });
   }
 
-  // NEW: Process auto-attendance
-  // NEW: Process auto-attendance
+  // NEW: Stop detection temporarily (tidak clear semua data)
+  void _stopDetectionTemporarily() {
+    _detectionTimer?.cancel();
+    _detectionTimer = null;
+    isDetecting(false);
+    print("Face detection stopped temporarily for attendance");
+  }
+
   Future<void> _processAutoAttendance() async {
-    // Simpan reference employee sebelum check null
     final employee = pendingEmployee;
 
     if (employee == null) {
@@ -483,7 +397,7 @@ class RecognitionController extends GetxController {
 
       _stopDetection();
 
-      // Step 1: Get user status untuk menentukan action
+      // Get user status
       final userStatus = await _attendanceService.getUserStatus(employee.id);
 
       if (userStatus == null) {
@@ -497,14 +411,14 @@ class RecognitionController extends GetxController {
         "✅ User status: canCheckin=${userStatus.canCheckin}, canCheckout=${userStatus.canCheckout}",
       );
 
-      // Step 2: Check if no action available
+      // Check if no action available
       if (!userStatus.canPerformAttendance) {
         print("ℹ️ No attendance action available for ${employee.name}");
         _showAlreadyCompletedDialog(employee);
         return;
       }
 
-      // Step 3: Determine and perform action
+      // Perform attendance action
       AttendanceResult? result;
 
       if (userStatus.canCheckin) {
@@ -515,7 +429,7 @@ class RecognitionController extends GetxController {
         result = await _attendanceService.checkOut(employee.id);
       }
 
-      // Step 4: Handle result
+      // Handle result
       if (result != null) {
         print("✅ Attendance API Response:");
         print("   Status: ${result.status}");
@@ -536,23 +450,22 @@ class RecognitionController extends GetxController {
           );
         }
 
-        // Show success message
-        if (result.isSuccess) {
-          SnackbarHelper.showSuccess(result.message, title: result.title);
-
-          // Optional: Show company info if available
-          if (result.companyInfo != null) {
-            print("   Company: ${result.companyInfo!.name}");
-            print("   Working Hours: ${result.companyInfo!.workingHours}");
-          }
-        } else {
-          SnackbarHelper.showError(result.message, title: result.title);
+        if (result.companyInfo != null) {
+          print("   Company: ${result.companyInfo!.name}");
+          print("   Working Hours: ${result.companyInfo!.workingHours}");
         }
 
-        // Wait a bit then restart detection
-        Future.delayed(Duration(seconds: 3), () {
-          _restartDetection();
-        });
+        // Navigate to confirmation screen
+        Get.toNamed(
+          Routes.ATTENDANCE_CONFIRMATION,
+          arguments: {
+            'employee': employee,
+            'attendanceResult': result,
+            'userStatus': userStatus,
+            'confidence':
+                faceConfidences[0] ?? 0.0, // Use first face confidence
+          },
+        );
       } else {
         print("❌ No response from attendance API");
         SnackbarHelper.showError('Attendance request failed');
@@ -564,23 +477,28 @@ class RecognitionController extends GetxController {
       SnackbarHelper.showError('Attendance process failed: ${e.toString()}');
       _restartDetection();
     } finally {
-      // Clear pending employee setelah selesai
       pendingEmployee = null;
     }
   }
 
-  // NEW: Cancel auto-attendance
+  void _resumeDetection() {
+    Future.delayed(Duration(milliseconds: 500), () {
+      if (!isDetecting.value && isInitialized.value) {
+        _startDetection();
+        print("Face detection resumed");
+      }
+    });
+  }
+
   void cancelAutoAttendance() {
     _autoAttendanceTimer?.cancel();
     _autoAttendanceTimer = null;
     autoAttendanceCountdown.value = 0;
     pendingEmployee = null;
     print("❌ Auto-attendance cancelled");
-    _restartDetection(); // Restart detection after cancel
+    _resumeDetection();
   }
 
-  // NEW: Show already completed dialog
-  // NEW: Show already completed dialog
   void _showAlreadyCompletedDialog(EmployeeModel employee) {
     Get.dialog(
       Dialog(
@@ -596,7 +514,6 @@ class RecognitionController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Employee avatar
               Container(
                 width: 80,
                 height: 80,
@@ -685,25 +602,40 @@ class RecognitionController extends GetxController {
           ),
         ),
       ),
+
       barrierDismissible: false,
     );
 
-    // Auto-close after 10 seconds
-    Timer(Duration(seconds: 10), () {
+    Timer(Duration(seconds: 5), () {
       if (Get.isDialogOpen ?? false) {
-        Get.back();
-        _restartDetection();
+        Get.offAllNamed(Routes.HOME);
       }
     });
   }
 
-  // NEW: Restart detection
   void _restartDetection() {
     Future.delayed(Duration(milliseconds: 500), () {
       if (!isDetecting.value) {
         _startDetection();
       }
     });
+  }
+
+  void toggleDetection() {
+    if (isDetecting.value) {
+      _stopDetection();
+    } else {
+      _startDetection();
+    }
+  }
+
+  void toggleRecognition() {
+    isRecognitionEnabled(!isRecognitionEnabled.value);
+
+    if (isDetecting.value) {
+      _stopDetection();
+      _startDetection();
+    }
   }
 
   void _stopDetection() {
@@ -725,21 +657,25 @@ class RecognitionController extends GetxController {
     print("Face detection stopped");
   }
 
-  // Debug method - tambahkan di RecognitionController
-  void debugEmployeeInfo() {
-    print("=== EMPLOYEE DEBUG INFO ===");
-    final employees = employeeService.employeesWithEmbedding;
-    print("Total employees with embedding: ${employees.length}");
+  // Getters
+  CameraController? get cameraController => _cameraService.controller;
 
-    for (var emp in employees) {
-      print("Employee: ${emp.name}");
-      print("  ID: ${emp.id}");
-      print("  Department: ${emp.departmentName}");
-      print("  Has embedding: ${emp.hasFaceEmbedding}");
-      print("  Embedding length: ${emp.embeddingVector.length}");
-      print("---");
-    }
-    print("=== END DEBUG INFO ===");
+  Size get previewSize {
+    if (!isInitialized.value) return Size.zero;
+    final controller = _cameraService.controller;
+    if (controller == null) return Size.zero;
+    return Size(
+      controller.value.previewSize?.height ?? 0,
+      controller.value.previewSize?.width ?? 0,
+    );
+  }
+
+  Size get imageSize {
+    if (!isInitialized.value) return Size.zero;
+    final controller = _cameraService.controller;
+    if (controller == null) return Size.zero;
+    final previewSize = controller.value.previewSize;
+    return Size(previewSize?.height ?? 0, previewSize?.width ?? 0);
   }
 
   @override

@@ -20,6 +20,50 @@ class CameraService {
   CameraDescription? get currentCamera =>
       _cameras.isNotEmpty ? _cameras[_currentCameraIndex] : null;
 
+  // Initialize front camera only
+  Future<bool> initializeFrontCamera() async {
+    try {
+      print("🎥 Initializing front camera only...");
+
+      // Request camera permission
+      final hasPermission = await _requestCameraPermission();
+      if (!hasPermission) {
+        print("❌ Camera permission denied");
+        return false;
+      }
+
+      // Get available cameras
+      _cameras = await availableCameras();
+      print("📷 Found ${_cameras.length} cameras");
+
+      if (_cameras.isEmpty) {
+        print("❌ No cameras found");
+        return false;
+      }
+
+      // Find front camera only
+      _currentCameraIndex = _cameras.indexWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.front,
+      );
+
+      // If no front camera, fail
+      if (_currentCameraIndex == -1) {
+        print("❌ No front camera found");
+        return false;
+      }
+
+      // Initialize camera controller
+      await _initializeController();
+
+      _isInitialized = true;
+      print("✅ Front camera initialized successfully");
+      return true;
+    } catch (e) {
+      print("❌ Error initializing front camera: $e");
+      return false;
+    }
+  }
+
   // Initialize camera service
   Future<bool> initialize() async {
     try {

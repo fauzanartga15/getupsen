@@ -117,21 +117,21 @@ class RecognitionScreen extends GetView<RecognitionController> {
         _buildFaceOverlay(),
 
         // Control buttons
-        Positioned(right: 16, top: 16, child: _buildSwitchButton()),
+        // Positioned(right: 16, top: 16, child: _buildSwitchButton()),
         Positioned(left: 16, top: 16, child: _buildRecognitionToggleButton()),
 
         // Info overlay
         _buildInfoOverlay(),
 
         // NEW: Attendance button
-        // Obx(
-        //   () => controller.autoAttendanceCountdown.value > 0
-        //       ? _buildAutoAttendanceCountdown()
-        //       : SizedBox.shrink(),
-        // ),
+        Obx(
+          () => controller.autoAttendanceCountdown.value > 0
+              ? _buildAutoAttendanceCountdown()
+              : SizedBox.shrink(),
+        ),
 
         // Di _buildCameraView() Stack children, tambahkan:
-        Positioned(
+        /* Positioned(
           bottom: 100,
           right: 16,
           child: FloatingActionButton(
@@ -177,7 +177,7 @@ class RecognitionScreen extends GetView<RecognitionController> {
             },
             child: Icon(Icons.api, color: Colors.white),
           ),
-        ),
+        ),*/
       ],
     );
   }
@@ -365,7 +365,6 @@ class RecognitionScreen extends GetView<RecognitionController> {
           ),
           onPressed: () {
             if (controller.isInitialized.value) {
-              controller.debugEmployeeInfo();
               controller.toggleRecognition();
             }
           },

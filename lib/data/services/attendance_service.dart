@@ -1,7 +1,9 @@
 // File: lib/data/services/attendance_service.dart
 import 'dart:convert';
+import 'dart:math';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import '../../infrastructure/navigation/routes.dart';
 import '../models/attendance_result_model.dart';
 import '../../config.dart';
 import '../models/user_attendance_status_model.dart';
@@ -11,17 +13,34 @@ class AttendanceService extends GetxService {
   final AuthService _authService = AuthService.instance;
 
   // Get user attendance status
+  // Get user attendance status - TAMBAH DEBUG
   Future<UserAttendanceStatus?> getUserStatus(int userId) async {
     try {
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
 
+      // DEBUG: Cek auth token
+      final authToken = _authService.authToken.value;
+      print("🔑 DEBUG: Auth token length: ${authToken.length}");
+      print(
+        "🔑 DEBUG: Auth token: ${authToken.substring(0, min(50, authToken.length))}...",
+      );
+      print(
+        "🔑 DEBUG: AuthService isLoggedIn: ${_authService.isLoggedIn.value}",
+      );
+      print("🔑 DEBUG: Current user: ${_authService.currentUser.value?.name}");
+
+      if (authToken.isEmpty) {
+        print("❌ Auth token is empty!");
+        return null;
+      }
+
       final response = await http.get(
         Uri.parse('${baseUrl}tablet/user-status/$userId'),
         headers: {
+          'Authorization': 'Bearer $authToken',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          // NO Authorization header karena endpoint ini tidak butuh token
         },
       );
 
@@ -44,6 +63,12 @@ class AttendanceService extends GetxService {
 
           return userStatus;
         }
+      } else if (response.statusCode == 401) {
+        print("❌ Token expired or invalid - need to re-login");
+        // Optional: Auto logout and redirect to login
+        _authService.logout();
+        Get.offAllNamed(Routes.LOGIN);
+        return null;
       }
 
       print("❌ Failed to get user status - Status: ${response.statusCode}");
@@ -55,24 +80,26 @@ class AttendanceService extends GetxService {
     }
   }
 
-  // Check in user
+  // Check in user - FIX TANGGAL
   Future<AttendanceResult?> checkIn(int userId) async {
     try {
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
 
       final now = DateTime.now();
+      final jakartaTime = now.add(Duration(hours: 7)); // WIB timezone
+
       final body = {
         'user_id': userId,
         'date':
-            '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+            '${jakartaTime.year}-${jakartaTime.month.toString().padLeft(2, '0')}-${jakartaTime.day.toString().padLeft(2, '0')}',
         'time_in':
-            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}',
+            '${jakartaTime.hour.toString().padLeft(2, '0')}:${jakartaTime.minute.toString().padLeft(2, '0')}:${jakartaTime.second.toString().padLeft(2, '0')}',
       };
 
       print("📤 Check-in API call: ${baseUrl}checkin-public");
       print("📤 Check-in request body: $body");
-      print("📤 Auth token: ${_authService.authToken.value}");
+      print("📤 Current Jakarta time: $jakartaTime");
 
       final response = await http.post(
         Uri.parse('${baseUrl}checkin-public'),
@@ -118,24 +145,26 @@ class AttendanceService extends GetxService {
     }
   }
 
-  // Check out user
+  // Check out user - FIX TANGGAL
   Future<AttendanceResult?> checkOut(int userId) async {
     try {
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
 
       final now = DateTime.now();
+      final jakartaTime = now.add(Duration(hours: 7)); // WIB timezone
+
       final body = {
         'user_id': userId,
         'date':
-            '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+            '${jakartaTime.year}-${jakartaTime.month.toString().padLeft(2, '0')}-${jakartaTime.day.toString().padLeft(2, '0')}',
         'time_out':
-            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}',
+            '${jakartaTime.hour.toString().padLeft(2, '0')}:${jakartaTime.minute.toString().padLeft(2, '0')}:${jakartaTime.second.toString().padLeft(2, '0')}',
       };
 
       print("📤 Check-out API call: ${baseUrl}checkout-public");
       print("📤 Check-out request body: $body");
-      print("📤 Auth token: ${_authService.authToken.value}");
+      print("📤 Current Jakarta time: $jakartaTime");
 
       final response = await http.post(
         Uri.parse('${baseUrl}checkout-public'),
