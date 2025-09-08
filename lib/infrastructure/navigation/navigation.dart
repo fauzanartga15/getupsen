@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../config.dart';
 import '../../presentation/screens.dart';
+import 'bindings/controllers/confirmation.controller.binding.dart';
 import 'bindings/controllers/controllers_bindings.dart';
 import 'middlewares/auth_middleware.dart';
 import 'routes.dart';
@@ -52,17 +53,10 @@ class Nav {
       middlewares: [AuthMiddleware()],
     ),
 
-    // Add more protected routes as needed
-    // GetPage(
-    //   name: Routes.ATTENDANCE_CARD,
-    //   page: () => const AttendanceCardScreen(),
-    //   binding: AttendanceCardControllerBinding(),
-    //   middlewares: [AuthMiddleware()],
-    // ),
     GetPage(
-      name: Routes.ATTENDANCE_CONFIRMATION,
-      page: () => const AttendanceConfirmationScreen(),
-      binding: AttendanceConfirmationControllerBinding(),
+      name: Routes.ACONFIRMATION,
+      page: () => const ConfirmationScreen(),
+      binding: ConfirmationControllerBinding(),
     ),
   ];
 }

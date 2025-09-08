@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
-class AttendanceConfirmationController extends GetxController {
-  //TODO: Implement AttendanceConfirmationController
+class ConfirmationController extends GetxController {
+  //TODO: Implement ConfirmationController
 
   final count = 0.obs;
   @override

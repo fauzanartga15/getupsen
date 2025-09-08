@@ -23,11 +23,59 @@ class EmployeeService extends GetxService {
   var isLoading = false.obs;
   var isSyncing = false.obs;
 
+  // 🆕 NEW: Face recognition tracking variables
+  var lastRecognizedEmployee = Rxn<EmployeeModel>();
+  var lastRecognitionConfidence = 0.0.obs;
+  var lastRecognitionTime = Rxn<DateTime>();
+
   @override
   void onInit() {
     super.onInit();
     _loadCachedEmployees();
     _checkAutoSync();
+  }
+
+  // 🆕 NEW: Set last recognized employee with confidence
+  void setLastRecognizedEmployee(EmployeeModel employee, double confidence) {
+    lastRecognizedEmployee.value = employee;
+    lastRecognitionConfidence.value = confidence;
+    lastRecognitionTime.value = DateTime.now();
+
+    print(
+      "✅ Last recognized employee set: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
+    );
+  }
+
+  // 🆕 NEW: Get last recognition confidence
+  double get employeeConfidence => lastRecognitionConfidence.value;
+
+  // 🆕 NEW: Get last recognized employee info
+  Map<String, dynamic>? get lastRecognitionInfo {
+    final employee = lastRecognizedEmployee.value;
+    if (employee == null) return null;
+
+    return {
+      'employee': employee,
+      'confidence': lastRecognitionConfidence.value,
+      'recognizedAt': lastRecognitionTime.value,
+    };
+  }
+
+  // 🆕 NEW: Check if we have recent recognition data (within 30 seconds)
+  bool get hasRecentRecognition {
+    final recognitionTime = lastRecognitionTime.value;
+    if (recognitionTime == null) return false;
+
+    final timeDiff = DateTime.now().difference(recognitionTime);
+    return timeDiff.inSeconds <= 30; // Valid for 30 seconds
+  }
+
+  // 🆕 NEW: Clear recognition data (after attendance is submitted)
+  void clearLastRecognition() {
+    lastRecognizedEmployee.value = null;
+    lastRecognitionConfidence.value = 0.0;
+    lastRecognitionTime.value = null;
+    print("🧹 Last recognition data cleared");
   }
 
   // Load cached employees from local storage
@@ -288,6 +336,9 @@ class EmployeeService extends GetxService {
       employees.clear();
       employeesWithEmbedding.clear();
       lastSyncTime.value = null;
+
+      // 🆕 NEW: Clear recognition data too
+      clearLastRecognition();
 
       print("✅ Employee cache cleared");
     } catch (e) {

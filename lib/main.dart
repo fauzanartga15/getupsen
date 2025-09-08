@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'data/services/attendance_service.dart';
 import 'data/services/auth_service.dart';
 import 'data/services/employee_service.dart';
+import 'data/services/location_service.dart';
 import 'infrastructure/navigation/navigation.dart';
 import 'infrastructure/navigation/routes.dart';
 import 'theme/app_theme.dart';
@@ -22,6 +23,7 @@ void main() async {
   // Initialize AuthService first before determining initial route
   print("🚀 Initializing AuthService...");
   Get.put<AuthService>(AuthService(), permanent: true);
+  Get.put<LocationService>(LocationService(), permanent: true);
   Get.put<EmployeeService>(EmployeeService(), permanent: true);
   Get.put<AttendanceService>(AttendanceService(), permanent: true);
 

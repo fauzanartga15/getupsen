@@ -1,4 +1,4 @@
-package com.example.upget
+package com.infazio.upsen_entrance
 
 import io.flutter.embedding.android.FlutterActivity
 

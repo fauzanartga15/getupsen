@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import 'package:camera/camera.dart';
 
 import '../../constant/app_color.dart';
-import '../../data/services/attendance_service.dart';
-import '../../data/services/auth_service.dart';
 import '../../widgets/enhanced_face_overlay_painter.dart';
 import 'controllers/recognition.controller.dart';
 
@@ -326,24 +324,6 @@ class RecognitionScreen extends GetView<RecognitionController> {
     final face = controller.faces[faceIndex];
     // This is simplified - in real implementation, use same transform logic as painter
     return face.boundingBox;
-  }
-
-  Widget _buildSwitchButton() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black54,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: IconButton(
-        icon: Icon(Icons.flip_camera_ios, color: Colors.white, size: 24),
-        onPressed: () {
-          if (controller.isInitialized.value) {
-            controller.switchCamera();
-          }
-        },
-        tooltip: 'Switch Camera',
-      ),
-    );
   }
 
   Widget _buildRecognitionToggleButton() {

@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/services/auth_service.dart';
+import '../../../data/services/location_service.dart';
 import '../../../infrastructure/navigation/routes.dart';
 import '../../../utils/snackbar_helper.dart';
 
 class HomeController extends GetxController with GetTickerProviderStateMixin {
   // Auth service
   final AuthService _authService = AuthService.instance;
+  final LocationService _locationService = LocationService.instance;
 
   // Animation controllers
   late AnimationController pulseController;
@@ -26,11 +28,12 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
   var recentActivities = <Map<String, dynamic>>[].obs;
 
   @override
-  void onInit() {
+  void onInit() async {
     super.onInit();
     _setupAnimations();
     _updateTime();
     _loadMockData();
+    _locationService.getCurrentLocationWithRetry();
   }
 
   void _setupAnimations() {

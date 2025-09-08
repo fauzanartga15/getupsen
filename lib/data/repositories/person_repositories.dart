@@ -19,7 +19,7 @@ class PersonRepository {
 
       final person = Person(
         name: name,
-        embedding: jsonEncode(embedding), // Convert List<double> to JSON string
+        embedding: jsonEncode(embedding),
         thumbnailPath: thumbnailPath,
         createdAt: now,
         updatedAt: now,

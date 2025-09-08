@@ -1,5 +1,5 @@
-name: upget
-description: "A new Flutter project."
+name: upsen_entrance
+description: "A new Upsen Apps for Entrance with tablet"
 publish_to: "none"
 version: 0.1.0
 
@@ -24,6 +24,8 @@ dependencies:
   http: ^1.5.0
   shared_preferences: ^2.5.3
   google_fonts: ^6.3.1
+  geolocator: ^14.0.2
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

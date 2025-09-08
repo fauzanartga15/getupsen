@@ -20,9 +20,9 @@ class Routes {
     }
   }
 
-  static const ATTENDANCE_CARD = '/attendance-card';
+  // static const ATTENDANCE_CARD = '/attendance-card';
   static const HOME = '/home';
   static const LOGIN = '/login';
   static const RECOGNITION = '/recognition';
-  static const ATTENDANCE_CONFIRMATION = '/attendance-confirmation';
+  static const ACONFIRMATION = '/attendance-confirmation';
 }

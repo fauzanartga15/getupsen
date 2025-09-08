@@ -1,6 +1,6 @@
 {
-    "name": "upget",
-    "short_name": "upget",
+    "name": "upsen_entrance",
+    "short_name": "upsen_entrance",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

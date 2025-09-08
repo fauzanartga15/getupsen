@@ -47,7 +47,7 @@ class RecognitionController extends GetxController {
   var isRecognitionEnabled = true.obs;
   var recognitionStats = ''.obs;
 
-  // Attendance button control - TETAP ADA
+  // Attendance button control
   var showAttendanceButton = false.obs;
 
   // Auto-attendance variables
@@ -55,6 +55,12 @@ class RecognitionController extends GetxController {
   var autoAttendanceCountdown = 0.obs;
   Timer? _autoAttendanceTimer;
   EmployeeModel? pendingEmployee;
+
+  // ADD: Cooldown management
+  static const int attendanceCooldown = 30; // 30 second cooldown
+  Map<int, DateTime> lastAttendanceTime =
+      {}; // Track last attendance per employee
+  bool isProcessingAttendance = false; // Prevent multiple simultane
 
   // Detection control
   Timer? _detectionTimer;
@@ -161,6 +167,7 @@ class RecognitionController extends GetxController {
           _faceRecognitionService.isModelLoaded &&
           employeeService.employeesWithEmbedding.isNotEmpty) {
         await _recognizeAllEmployeeFaces(imageFile.path, detectedFaces);
+        _testSimilarityFlow(); //for testing, delete soon if clear
       }
 
       // Cleanup
@@ -300,7 +307,7 @@ class RecognitionController extends GetxController {
     final recognizedCount = isRecognized.values
         .where((recognized) => recognized)
         .length;
-    recognitionStats('${recognizedCount}/${faces.length} employees recognized');
+    recognitionStats('$recognizedCount/${faces.length} employees recognized');
   }
 
   void _updateDetectionStats(int faceCount) {
@@ -354,14 +361,32 @@ class RecognitionController extends GetxController {
   void _triggerAutoAttendance(EmployeeModel employee) {
     if (!isAutoAttendanceEnabled.value) return;
     if (_autoAttendanceTimer != null) return; // Prevent multiple triggers
+    if (isProcessingAttendance) {
+      print("⏸️ Already processing attendance, skipping trigger");
+      return;
+    }
+
+    // CHECK COOLDOWN - Prevent rapid re-attendance
+    final lastTime = lastAttendanceTime[employee.id];
+    if (lastTime != null) {
+      final secondsSinceLastAttendance = DateTime.now()
+          .difference(lastTime)
+          .inSeconds;
+      if (secondsSinceLastAttendance < attendanceCooldown) {
+        print(
+          "⏰ Cooldown active for ${employee.name}: ${attendanceCooldown - secondsSinceLastAttendance}s remaining",
+        );
+        return;
+      }
+    }
 
     pendingEmployee = employee;
     autoAttendanceCountdown.value = 3; // 3 second countdown
 
     print("🕐 Auto-attendance triggered for: ${employee.name}");
 
-    // STOP DETECTION saat countdown dimulai
-    _stopDetectionTemporarily();
+    // STOP DETECTION completely during countdown
+    _stopDetectionCompletely();
 
     _autoAttendanceTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       autoAttendanceCountdown.value--;
@@ -374,12 +399,13 @@ class RecognitionController extends GetxController {
     });
   }
 
-  // NEW: Stop detection temporarily (tidak clear semua data)
-  void _stopDetectionTemporarily() {
+  // NEW: Stop detection completely (no restart)
+  void _stopDetectionCompletely() {
     _detectionTimer?.cancel();
     _detectionTimer = null;
     isDetecting(false);
-    print("Face detection stopped temporarily for attendance");
+    _isProcessingFrame = false; // Also stop frame processing
+    print("🛑 Face detection stopped completely for attendance");
   }
 
   Future<void> _processAutoAttendance() async {
@@ -387,15 +413,20 @@ class RecognitionController extends GetxController {
 
     if (employee == null) {
       print("❌ No pending employee for auto-attendance");
+      _restartDetectionWithDelay(); // Restart with delay
       return;
     }
+
+    // MARK as processing to prevent multiple triggers
+    isProcessingAttendance = true;
 
     try {
       print(
         "🤖 Processing auto-attendance for: ${employee.name} (ID: ${employee.id})",
       );
 
-      _stopDetection();
+      // Stop detection completely
+      _stopDetectionCompletely();
 
       // Get user status
       final userStatus = await _attendanceService.getUserStatus(employee.id);
@@ -403,18 +434,21 @@ class RecognitionController extends GetxController {
       if (userStatus == null) {
         print("❌ Failed to get user status");
         SnackbarHelper.showError('Failed to get user status');
-        _restartDetection();
+        _restartDetectionWithDelay();
         return;
       }
 
       print(
         "✅ User status: canCheckin=${userStatus.canCheckin}, canCheckout=${userStatus.canCheckout}",
       );
+      print("   → Will perform ${userStatus.nextAction}");
 
       // Check if no action available
       if (!userStatus.canPerformAttendance) {
         print("ℹ️ No attendance action available for ${employee.name}");
         _showAlreadyCompletedDialog(employee);
+        // Still update cooldown even for completed
+        lastAttendanceTime[employee.id] = DateTime.now();
         return;
       }
 
@@ -430,73 +464,65 @@ class RecognitionController extends GetxController {
       }
 
       // Handle result
-      if (result != null) {
-        print("✅ Attendance API Response:");
-        print("   Status: ${result.status}");
-        print("   Message: ${result.message}");
-        print("   Title: ${result.title}");
-        print("   Next Action: ${result.nextAction}");
+      if (result != null && result.status) {
+        print("✅ Attendance successful!");
 
-        if (result.attendance != null) {
-          print("   Attendance ID: ${result.attendance!.userId}");
-          print("   Type: ${result.attendance!.actionText}");
-          print("   Time: ${result.attendance!.timeText}");
-          print("   Status: ${result.attendance!.statusText}");
-        }
+        // UPDATE COOLDOWN - Prevent rapid re-attendance
+        lastAttendanceTime[employee.id] = DateTime.now();
 
-        if (result.user != null) {
-          print(
-            "   User: ${result.user!.name} (${result.user!.positionWithDepartment})",
-          );
-        }
+        //if all process successed
+        // 1. Stop all processes
+        _stopDetectionCompletely();
 
-        if (result.companyInfo != null) {
-          print("   Company: ${result.companyInfo!.name}");
-          print("   Working Hours: ${result.companyInfo!.workingHours}");
-        }
+        // 2. Dispose camera properly
+        await _cameraService.dispose();
+        isInitialized(false);
 
-        // Navigate to confirmation screen
+        // 3. Clear face data
+        faces.clear();
+        faceNames.clear();
+        faceConfidences.clear();
+
+        // 4. Navigate to confirmation screen
         Get.toNamed(
-          Routes.ATTENDANCE_CONFIRMATION,
+          Routes.ACONFIRMATION,
           arguments: {
             'employee': employee,
             'attendanceResult': result,
             'userStatus': userStatus,
-            'confidence':
-                faceConfidences[0] ?? 0.0, // Use first face confidence
+            'confidence': faceConfidences[0] ?? 0.0,
           },
         );
+
+        // DO NOT restart detection immediately!
+        // Let user see confirmation screen first
+        print("📱 Navigated to confirmation screen - detection paused");
       } else {
-        print("❌ No response from attendance API");
+        print("❌ Attendance failed or no response");
         SnackbarHelper.showError('Attendance request failed');
-        _restartDetection();
+        _restartDetectionWithDelay();
       }
     } catch (e, stackTrace) {
       print("❌ Error processing auto-attendance: $e");
       print("❌ Stack trace: $stackTrace");
       SnackbarHelper.showError('Attendance process failed: ${e.toString()}');
-      _restartDetection();
+      _restartDetectionWithDelay();
     } finally {
       pendingEmployee = null;
+      isProcessingAttendance = false; // Release lock
     }
   }
 
-  void _resumeDetection() {
-    Future.delayed(Duration(milliseconds: 500), () {
-      if (!isDetecting.value && isInitialized.value) {
+  //Restart detection with delay to prevent immediate re-trigger
+  void _restartDetectionWithDelay() {
+    Future.delayed(Duration(seconds: 5), () {
+      if (!isDetecting.value &&
+          isInitialized.value &&
+          !isProcessingAttendance) {
+        print("🔄 Restarting face detection after delay");
         _startDetection();
-        print("Face detection resumed");
       }
     });
-  }
-
-  void cancelAutoAttendance() {
-    _autoAttendanceTimer?.cancel();
-    _autoAttendanceTimer = null;
-    autoAttendanceCountdown.value = 0;
-    pendingEmployee = null;
-    print("❌ Auto-attendance cancelled");
-    _resumeDetection();
   }
 
   void _showAlreadyCompletedDialog(EmployeeModel employee) {
@@ -580,7 +606,7 @@ class RecognitionController extends GetxController {
                 child: ElevatedButton(
                   onPressed: () {
                     Get.back();
-                    _restartDetection();
+                    _restartDetectionWithDelay(); // Use delay version
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
@@ -602,23 +628,48 @@ class RecognitionController extends GetxController {
           ),
         ),
       ),
-
       barrierDismissible: false,
     );
 
+    // Auto close and redirect after 5 seconds
     Timer(Duration(seconds: 5), () {
       if (Get.isDialogOpen ?? false) {
-        Get.offAllNamed(Routes.HOME);
+        Get.back();
+        _restartDetectionWithDelay();
       }
     });
   }
 
-  void _restartDetection() {
-    Future.delayed(Duration(milliseconds: 500), () {
-      if (!isDetecting.value) {
-        _startDetection();
-      }
-    });
+  void cancelAutoAttendance() {
+    _autoAttendanceTimer?.cancel();
+    _autoAttendanceTimer = null;
+    autoAttendanceCountdown.value = 0;
+    pendingEmployee = null;
+    isProcessingAttendance = false; // Release lock
+    print("❌ Auto-attendance cancelled");
+    _restartDetectionWithDelay(); // Use delay version
+  }
+
+  // Method to clear cooldown (for testing)
+  void clearCooldown(int? employeeId) {
+    if (employeeId != null) {
+      lastAttendanceTime.remove(employeeId);
+      print("🔄 Cooldown cleared for employee ID: $employeeId");
+    } else {
+      lastAttendanceTime.clear();
+      print("🔄 All cooldowns cleared");
+    }
+  }
+
+  // Method to check if employee is in cooldown
+  bool isInCooldown(int employeeId) {
+    final lastTime = lastAttendanceTime[employeeId];
+    if (lastTime == null) return false;
+
+    final secondsSinceLastAttendance = DateTime.now()
+        .difference(lastTime)
+        .inSeconds;
+    return secondsSinceLastAttendance < attendanceCooldown;
   }
 
   void toggleDetection() {
@@ -678,10 +729,24 @@ class RecognitionController extends GetxController {
     return Size(previewSize?.height ?? 0, previewSize?.width ?? 0);
   }
 
+  void _testSimilarityFlow() {
+    print("=== TESTING SIMILARITY FLOW ===");
+
+    final employeeService = Get.find<EmployeeService>();
+
+    print(
+      "Last recognized employee: ${employeeService.lastRecognizedEmployee.value?.name}",
+    );
+    print("Last confidence: ${employeeService.employeeConfidence}");
+    print("Has recent recognition: ${employeeService.hasRecentRecognition}");
+    print("Recognition info: ${employeeService.lastRecognitionInfo}");
+
+    print("=== END TESTING ===");
+  }
+
   @override
   void onClose() {
-    print("Disposing recognition controller...");
-    _stopDetection();
+    _stopDetectionCompletely();
     cancelAutoAttendance();
     _faceDetector.close();
     _faceRecognitionService.dispose();

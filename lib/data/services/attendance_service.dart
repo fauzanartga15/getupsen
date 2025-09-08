@@ -1,6 +1,5 @@
-// File: lib/data/services/attendance_service.dart
+// File: lib/data/services/attendance_service.dart (Key parts - enhanced)
 import 'dart:convert';
-import 'dart:math';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../infrastructure/navigation/routes.dart';
@@ -8,27 +7,20 @@ import '../models/attendance_result_model.dart';
 import '../../config.dart';
 import '../models/user_attendance_status_model.dart';
 import 'auth_service.dart';
+import 'location_service.dart';
 
 class AttendanceService extends GetxService {
   final AuthService _authService = AuthService.instance;
+  final LocationService _locationService = LocationService.instance;
 
-  // Get user attendance status
-  // Get user attendance status - TAMBAH DEBUG
+  // Get user attendance status with enhanced debugging
   Future<UserAttendanceStatus?> getUserStatus(int userId) async {
     try {
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
 
-      // DEBUG: Cek auth token
       final authToken = _authService.authToken.value;
-      print("🔑 DEBUG: Auth token length: ${authToken.length}");
-      print(
-        "🔑 DEBUG: Auth token: ${authToken.substring(0, min(50, authToken.length))}...",
-      );
-      print(
-        "🔑 DEBUG: AuthService isLoggedIn: ${_authService.isLoggedIn.value}",
-      );
-      print("🔑 DEBUG: Current user: ${_authService.currentUser.value?.name}");
+      print("🔑 Auth token valid: ${authToken.isNotEmpty}");
 
       if (authToken.isEmpty) {
         print("❌ Auth token is empty!");
@@ -44,28 +36,48 @@ class AttendanceService extends GetxService {
         },
       );
 
-      print("📊 User status API call: ${baseUrl}tablet/user-status/$userId");
-      print("📊 User status response: ${response.statusCode}");
-      print("📊 Response body: ${response.body}");
+      print("📊 User status API Response:");
+      print("   URL: ${baseUrl}tablet/user-status/$userId");
+      print("   Status Code: ${response.statusCode}");
+      print("   Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("🔍 Parsed data: $data");
+
+        // Enhanced debugging
+        print("🔍 Decoded JSON structure:");
+        print("   Root keys: ${data.keys.toList()}");
+        print("   Status: ${data['status']}");
 
         if (data['status'] == 'success' && data['data'] != null) {
           final statusData = data['data'];
-          print("🔍 Status data: $statusData");
+
+          print("🔍 Status data structure:");
+          print("   Keys: ${statusData.keys.toList()}");
+          print(
+            "   can_checkin: ${statusData['can_checkin']} (${statusData['can_checkin'].runtimeType})",
+          );
+          print(
+            "   can_checkout: ${statusData['can_checkout']} (${statusData['can_checkout'].runtimeType})",
+          );
+          print("   last_action: ${statusData['last_action']}");
+          print("   last_action_time: ${statusData['last_action_time']}");
 
           final userStatus = UserAttendanceStatus.fromJson(statusData);
-          print(
-            "🔍 Created UserAttendanceStatus: canCheckin=${userStatus.canCheckin}, canCheckout=${userStatus.canCheckout}",
-          );
+
+          print("✅ UserAttendanceStatus created:");
+          print("   canCheckin: ${userStatus.canCheckin}");
+          print("   canCheckout: ${userStatus.canCheckout}");
+          print("   canPerformAttendance: ${userStatus.canPerformAttendance}");
+          print("   nextAction: ${userStatus.nextAction}");
 
           return userStatus;
+        } else {
+          print("❌ Invalid response structure or status");
+          return null;
         }
       } else if (response.statusCode == 401) {
         print("❌ Token expired or invalid - need to re-login");
-        // Optional: Auto logout and redirect to login
         _authService.logout();
         Get.offAllNamed(Routes.LOGIN);
         return null;
@@ -80,14 +92,20 @@ class AttendanceService extends GetxService {
     }
   }
 
-  // Check in user - FIX TANGGAL
+  // Check in user dengan validasi tambahan
   Future<AttendanceResult?> checkIn(int userId) async {
     try {
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
 
+      // Use local time (WIB/Indonesia)
       final now = DateTime.now();
-      final jakartaTime = now.add(Duration(hours: 7)); // WIB timezone
+      // Note: Jika server sudah expect WIB, tidak perlu add 7 hours
+      // final jakartaTime = now.add(Duration(hours: 7));
+      final jakartaTime = now; // Gunakan waktu lokal device
+
+      // Get current location
+      final position = await _locationService.getCurrentLocationWithRetry();
 
       final body = {
         'user_id': userId,
@@ -97,9 +115,23 @@ class AttendanceService extends GetxService {
             '${jakartaTime.hour.toString().padLeft(2, '0')}:${jakartaTime.minute.toString().padLeft(2, '0')}:${jakartaTime.second.toString().padLeft(2, '0')}',
       };
 
-      print("📤 Check-in API call: ${baseUrl}checkin-public");
-      print("📤 Check-in request body: $body");
-      print("📤 Current Jakarta time: $jakartaTime");
+      print("📤 Check-in Request:");
+      print("   URL: ${baseUrl}checkin-public");
+      print("   User ID: $userId");
+      print("   Date: ${body['date']}");
+      print("   Time In: ${body['time_in']}");
+      print("   Full Body: ${jsonEncode(body)}");
+
+      // 4. Add location if available
+      if (position != null) {
+        body['latlon_in'] = "${position.latitude}, ${position.longitude}";
+
+        // body['accuracy'] = position.accuracy; // Optional: tambahan info akurasi
+        print("📍 Location added: ${position.latitude}, ${position.longitude}");
+      } else {
+        print("⚠️ No location data available for check-in");
+        // Optional: bisa return error atau lanjut tanpa lokasi
+      }
 
       final response = await http.post(
         Uri.parse('${baseUrl}checkin-public'),
@@ -111,29 +143,43 @@ class AttendanceService extends GetxService {
         body: jsonEncode(body),
       );
 
-      print("📥 Check-in response: ${response.statusCode}");
-      print("📥 Response body: ${response.body}");
+      print("📥 Check-in Response:");
+      print("   Status Code: ${response.statusCode}");
+      print("   Response Body: ${response.body}");
 
-      if (response.statusCode == 200 || response.statusCode == 400) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final result = AttendanceResult.fromJson(data);
 
-        print(
-          "✅ Check-in result parsed: status=${result.status}, message=${result.message}",
-        );
+        print("✅ Check-in successful:");
+        print("   Status: ${result.status}");
+        print("   Message: ${result.message}");
+        print("   Title: ${result.title}");
+
+        return result;
+      } else if (response.statusCode == 400) {
+        // 400 might mean already checked in
+        final data = jsonDecode(response.body);
+        final result = AttendanceResult.fromJson(data);
+
+        print("⚠️ Check-in returned 400:");
+        print("   Message: ${result.message}");
+
         return result;
       } else {
-        print("❌ Check-in failed with status: ${response.statusCode}");
+        print(
+          "❌ Check-in failed with unexpected status: ${response.statusCode}",
+        );
         return AttendanceResult(
           status: false,
-          message: 'Check-in failed with status ${response.statusCode}',
+          message: 'Check-in failed: Server returned ${response.statusCode}',
           title: 'Error',
           subtitle: 'Please try again',
           statusColor: '#EF4444',
         );
       }
     } catch (e, stackTrace) {
-      print("❌ Error checking in: $e");
+      print("❌ Exception during check-in: $e");
       print("❌ Stack trace: $stackTrace");
       return AttendanceResult(
         status: false,
@@ -145,14 +191,18 @@ class AttendanceService extends GetxService {
     }
   }
 
-  // Check out user - FIX TANGGAL
+  // Check out user dengan validasi tambahan
   Future<AttendanceResult?> checkOut(int userId) async {
     try {
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
 
+      // waktu
       final now = DateTime.now();
-      final jakartaTime = now.add(Duration(hours: 7)); // WIB timezone
+      final jakartaTime = now; //server sudah set otomatis
+
+      // 2. Get current location
+      final position = await _locationService.getCurrentLocationWithRetry();
 
       final body = {
         'user_id': userId,
@@ -162,9 +212,21 @@ class AttendanceService extends GetxService {
             '${jakartaTime.hour.toString().padLeft(2, '0')}:${jakartaTime.minute.toString().padLeft(2, '0')}:${jakartaTime.second.toString().padLeft(2, '0')}',
       };
 
-      print("📤 Check-out API call: ${baseUrl}checkout-public");
-      print("📤 Check-out request body: $body");
-      print("📤 Current Jakarta time: $jakartaTime");
+      print("📤 Check-out Request:");
+      print("   URL: ${baseUrl}checkout-public");
+      print("   User ID: $userId");
+      print("   Date: ${body['date']}");
+      print("   Time Out: ${body['time_out']}");
+
+      //Add location if available
+      if (position != null) {
+        body['latlon_out'] = "${position.latitude}, ${position.longitude}";
+
+        // body['accuracy'] = position.accuracy;
+        print("📍 Location added: ${position.latitude}, ${position.longitude}");
+      } else {
+        print("⚠️ No location data available for check-out");
+      }
 
       final response = await http.post(
         Uri.parse('${baseUrl}checkout-public'),
@@ -176,29 +238,34 @@ class AttendanceService extends GetxService {
         body: jsonEncode(body),
       );
 
-      print("📥 Check-out response: ${response.statusCode}");
-      print("📥 Response body: ${response.body}");
+      print("📥 Check-out Response:");
+      print("   Status Code: ${response.statusCode}");
+      print("   Response Body: ${response.body}");
 
-      if (response.statusCode == 200 || response.statusCode == 400) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final result = AttendanceResult.fromJson(data);
 
-        print(
-          "✅ Check-out result parsed: status=${result.status}, message=${result.message}",
-        );
+        print("✅ Check-out successful");
+        return result;
+      } else if (response.statusCode == 400) {
+        final data = jsonDecode(response.body);
+        final result = AttendanceResult.fromJson(data);
+
+        print("⚠️ Check-out returned 400: ${result.message}");
         return result;
       } else {
         print("❌ Check-out failed with status: ${response.statusCode}");
         return AttendanceResult(
           status: false,
-          message: 'Check-out failed with status ${response.statusCode}',
+          message: 'Check-out failed: Server returned ${response.statusCode}',
           title: 'Error',
           subtitle: 'Please try again',
           statusColor: '#EF4444',
         );
       }
     } catch (e, stackTrace) {
-      print("❌ Error checking out: $e");
+      print("❌ Exception during check-out: $e");
       print("❌ Stack trace: $stackTrace");
       return AttendanceResult(
         status: false,
