@@ -24,5 +24,5 @@ class Routes {
   static const HOME = '/home';
   static const LOGIN = '/login';
   static const RECOGNITION = '/recognition';
-  static const ACONFIRMATION = '/attendance-confirmation';
+  static const CONFIRMATION = '/attendance-confirmation';
 }

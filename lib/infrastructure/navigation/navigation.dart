@@ -54,7 +54,7 @@ class Nav {
     ),
 
     GetPage(
-      name: Routes.ACONFIRMATION,
+      name: Routes.CONFIRMATION,
       page: () => const ConfirmationScreen(),
       binding: ConfirmationControllerBinding(),
     ),

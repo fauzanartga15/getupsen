@@ -485,7 +485,7 @@ class RecognitionController extends GetxController {
 
         // 4. Navigate to confirmation screen
         Get.toNamed(
-          Routes.ACONFIRMATION,
+          Routes.CONFIRMATION,
           arguments: {
             'employee': employee,
             'attendanceResult': result,
