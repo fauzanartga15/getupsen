@@ -2,7 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../data/models/dashboard_model.dart';
 import '../../../data/services/auth_service.dart';
+import '../../../data/services/dashboard_service.dart';
+import '../../../data/services/employee_service.dart';
 import '../../../data/services/location_service.dart';
 import '../../../infrastructure/navigation/routes.dart';
 import '../../../utils/snackbar_helper.dart';
@@ -11,6 +14,9 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
   // Auth service
   final AuthService _authService = AuthService.instance;
   final LocationService _locationService = LocationService.instance;
+
+  // dashboard Service
+  final DashboardService _dashboardService = Get.find<DashboardService>();
 
   // Animation controllers
   late AnimationController pulseController;
@@ -24,16 +30,32 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
   var checkedInCount = 38.obs;
   var checkedOutCount = 15.obs;
 
-  // Recent activity mock data
-  var recentActivities = <Map<String, dynamic>>[].obs;
+  // Loading states
+  var isLoadingDashboard = false.obs;
+  var isRefreshing = false.obs;
+
+  // Dashboard data
+  var dashboardStats = Rxn<DashboardStats>();
+  var recentActivities = <RecentActivity>[].obs;
+
+  // Today stats (for other parts of dashboard)
+  var totalEmployees = 0.obs;
+  var checkedIn = 0.obs;
+  var checkedOut = 0.obs;
+  var absentCount = 0.obs;
 
   @override
   void onInit() async {
     super.onInit();
     _setupAnimations();
     _updateTime();
-    _loadMockData();
     _locationService.getCurrentLocationWithRetry();
+
+    //dashboard
+    loadDashboardData();
+
+    // Auto refresh every 30 seconds
+    _startAutoRefresh();
   }
 
   void _setupAnimations() {
@@ -71,25 +93,118 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
     Future.delayed(Duration(minutes: 1), _updateTime);
   }
 
-  void _loadMockData() {
-    // Mock recent activities
-    recentActivities.assignAll([
-      {
-        'name': 'John Doe - IT Department',
-        'details': '✓ Checked in at 08:15 AM (On time)',
-        'statusColor': 'green',
-      },
-      {
-        'name': 'Jane Smith - HR',
-        'details': '✓ Checked in at 08:23 AM (On time)',
-        'statusColor': 'green',
-      },
-      {
-        'name': 'Mike Johnson - Marketing',
-        'details': '⏰ Checked in at 08:35 AM (Late)',
-        'statusColor': 'orange',
-      },
-    ]);
+  // Load dashboard data from API
+  Future<void> loadDashboardData() async {
+    try {
+      isLoadingDashboard(true);
+      print("🔄 Loading dashboard data...");
+
+      final stats = await _dashboardService.getDashboardStats();
+
+      if (stats != null) {
+        dashboardStats.value = stats;
+
+        // Update recent activities
+        recentActivities.assignAll(stats.data.recentActivities);
+
+        // Update today stats
+        final today = stats.data.today;
+        totalEmployees.value = today.totalEmployees;
+        checkedIn.value = today.checkedIn;
+        checkedOut.value = today.checkedOut;
+        absentCount.value = today.absentCount;
+
+        print("✅ Dashboard data loaded successfully");
+        print("   Recent activities: ${recentActivities.length}");
+        print("   Total employees: ${totalEmployees.value}");
+      } else {
+        print("❌ Failed to load dashboard data");
+        // Load fallback/mock data if needed
+        _loadFallbackData();
+      }
+    } catch (e) {
+      print("❌ Error loading dashboard data: $e");
+      _loadFallbackData();
+    } finally {
+      isLoadingDashboard(false);
+    }
+  }
+
+  // Refresh dashboard data
+  Future<void> refreshDashboardData() async {
+    try {
+      isRefreshing(true);
+      await loadDashboardData();
+    } finally {
+      isRefreshing(false);
+    }
+  }
+
+  // Auto refresh every 30 seconds
+  void _startAutoRefresh() {
+    // Refresh data every 30 seconds
+    Stream.periodic(Duration(seconds: 30)).listen((_) {
+      if (!isLoadingDashboard.value && !isRefreshing.value) {
+        loadDashboardData();
+      }
+    });
+  }
+
+  // Load fallback data when API fails
+  void _loadFallbackData() {
+    print("🔄 Loading fallback data...");
+
+    // Convert mock data to RecentActivity objects for consistency
+    final mockActivities = [
+      RecentActivity(
+        userId: 1,
+        name: 'John Doe',
+        action: 'checkin',
+        time: '08:15',
+        status: 'ontime',
+        department: 'IT Department',
+      ),
+      RecentActivity(
+        userId: 2,
+        name: 'Jane Smith',
+        action: 'checkin',
+        time: '08:23',
+        status: 'ontime',
+        department: 'HR',
+      ),
+      RecentActivity(
+        userId: 3,
+        name: 'Mike Johnson',
+        action: 'checkin',
+        time: '08:35',
+        status: 'late',
+        department: 'Marketing',
+      ),
+    ];
+
+    recentActivities.assignAll(mockActivities);
+
+    // Mock today stats
+    totalEmployees.value = 10;
+    checkedIn.value = 3;
+    checkedOut.value = 0;
+    absentCount.value = 7;
+  }
+
+  // Get formatted activity data for UI (backward compatibility)
+  List<Map<String, dynamic>> get formattedActivities {
+    return recentActivities.map((activity) {
+      return {
+        'name': activity.displayName,
+        'details': activity.details,
+        'statusColor': activity.statusColor,
+      };
+    }).toList();
+  }
+
+  // Manual refresh method (can be called from UI)
+  Future<void> onRefresh() async {
+    await refreshDashboardData();
   }
 
   // Navigation methods
@@ -358,6 +473,17 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
 
   // Getters for user data
   String get userName => _authService.currentUser.value?.name ?? 'User';
+  // Di HomeController:
+  String get companyName {
+    final employeeService = Get.find<EmployeeService>();
+
+    if (employeeService.employees.isNotEmpty) {
+      return employeeService.employees.first.company.name;
+    }
+
+    return 'Company';
+  }
+
   String get userInitials =>
       _authService.currentUser.value?.name
           .split(' ')

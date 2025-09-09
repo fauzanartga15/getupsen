@@ -25,6 +25,8 @@ class AuthService extends GetxService {
   var companyId = 0.obs;
   var isLoggedIn = false.obs;
 
+  //get
+
   @override
   void onInit() {
     super.onInit();

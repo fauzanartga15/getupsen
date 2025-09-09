@@ -15,12 +15,12 @@ class ConfirmationController extends GetxController {
   double confidence = 0.0;
 
   // Reactive countdown
-  var countdown = 60.obs;
+  var countdown = 15.obs;
   Timer? _countdownTimer;
   Timer? _autoRedirectTimer;
 
   // Computed countdown progress for circular indicator
-  double get countdownProgress => countdown.value / 60.0;
+  double get countdownProgress => countdown.value / 15.0;
 
   @override
   void onInit() {
@@ -53,7 +53,7 @@ class ConfirmationController extends GetxController {
 
   void _startCountdown() {
     // Start auto redirect timer (10 seconds)
-    _autoRedirectTimer = Timer(const Duration(seconds: 1), () {
+    _autoRedirectTimer = Timer(const Duration(seconds: 15), () {
       if (Get.currentRoute.contains('confirmation')) {
         _navigateToHome();
       }

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../theme/app_color.dart';
 import '../../theme/app_theme.dart';
 import 'controllers/login.controller.dart';
 
@@ -16,11 +17,7 @@ class LoginScreen extends GetView<LoginController> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              AppTheme.primaryPurple.withValues(alpha: 0.8),
-              AppTheme.secondaryBlue.withValues(alpha: 0.9),
-              AppTheme.accentCyan,
-            ],
+            colors: AppColor.kGradientBg,
             stops: [0.1, 0.5, 1.0],
           ),
         ),
@@ -103,7 +100,7 @@ class LoginScreen extends GetView<LoginController> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryPurple.withValues(alpha: 0.3),
+            color: AppColor.kPrimaryColor.withValues(alpha: 0.3),
             blurRadius: 20,
             spreadRadius: 5,
           ),
@@ -265,7 +262,7 @@ class LoginScreen extends GetView<LoginController> {
         height: 50,
         child: Container(
           decoration: BoxDecoration(
-            gradient: AppTheme.primaryGradient,
+            gradient: AppColor.buttonGradient,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             boxShadow: [
               BoxShadow(

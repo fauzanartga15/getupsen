@@ -14,24 +14,22 @@ import 'theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize AuthService first before determining initial routeprint("🚀 Initializing AuthService...");
+  Get.put<AuthService>(AuthService(), permanent: true);
+  Get.put<LocationService>(LocationService(), permanent: true);
+  Get.put<EmployeeService>(EmployeeService(), permanent: true);
+  Get.put<AttendanceService>(AttendanceService(), permanent: true);
+
   // 🔒 LOCK ORIENTATION TO PORTRAIT ONLY
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize AuthService first before determining initial route
-  print("🚀 Initializing AuthService...");
-  Get.put<AuthService>(AuthService(), permanent: true);
-  Get.put<LocationService>(LocationService(), permanent: true);
-  Get.put<EmployeeService>(EmployeeService(), permanent: true);
-  Get.put<AttendanceService>(AttendanceService(), permanent: true);
-
   // Wait for AuthService to load stored data
   await Future.delayed(Duration(milliseconds: 100));
 
   var initialRoute = await Routes.initialRoute;
-  print("📍 Initial route determined: $initialRoute");
 
   runApp(Main(initialRoute));
 }

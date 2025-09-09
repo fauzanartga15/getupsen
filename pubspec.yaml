@@ -31,6 +31,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: "^0.14.4"
+  flutter_native_splash: ^2.4.6
 
 flutter:
   uses-material-design: true
@@ -39,3 +41,18 @@ flutter:
     - assets/
     - assets/images/
     - assets/models/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  color: "#FFFFFF"
+  adaptive_icon_background: "#FFFFFF"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/icon/icon.png"
+  android: true
+  ios: true
+  android_gravity: center
+  ios_content_mode: scaleAspectFit

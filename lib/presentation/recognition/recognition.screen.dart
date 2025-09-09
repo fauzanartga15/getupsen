@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:camera/camera.dart';
 
-import '../../constant/app_color.dart';
+import '../../theme/app_color.dart';
 import '../../widgets/enhanced_face_overlay_painter.dart';
 import 'controllers/recognition.controller.dart';
 

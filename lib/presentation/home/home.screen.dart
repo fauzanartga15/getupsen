@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../constant/app_color.dart';
+import '../../theme/app_color.dart';
 import 'controllers/home.controller.dart';
 
 class HomeScreen extends GetView<HomeController> {
@@ -207,12 +207,23 @@ class HomeScreen extends GetView<HomeController> {
         SizedBox(height: 15),
 
         Text(
-          'Welcome, ${controller.userName}',
+          'Welcome,',
           style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
             color: AppColor.kTextPrimary,
           ),
+        ),
+        Text(
+          controller.companyName,
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColor.kPrimaryColor,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2, // Jika nama company panjang
+          overflow: TextOverflow.ellipsis,
         ),
 
         SizedBox(height: 5),
@@ -319,11 +330,8 @@ class HomeScreen extends GetView<HomeController> {
                   width: double.infinity,
                   padding: EdgeInsets.all(25),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: AppColor.kGradientMainAction,
-                    ),
+                    gradient: AppColor.buttonGradient,
+
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -370,73 +378,178 @@ class HomeScreen extends GetView<HomeController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Recent Activity',
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AppColor.kTextPrimary,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Recent Activity',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColor.kTextPrimary,
+              ),
+            ),
+            // Add refresh button
+            Obx(
+              () => controller.isRefreshing.value
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : IconButton(
+                      icon: Icon(Icons.refresh, size: 18),
+                      onPressed: controller.onRefresh,
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+            ),
+          ],
         ),
         SizedBox(height: 10),
         Expanded(
-          child: Obx(
-            () => ListView.builder(
-              itemCount: controller.recentActivities.length,
-              itemBuilder: (context, index) {
-                final activity = controller.recentActivities[index];
-                return _buildActivityItem(
-                  name: activity['name'],
-                  details: activity['details'],
-                  statusColor: _getColorFromString(activity['statusColor']),
-                );
-              },
-            ),
-          ),
+          child: Obx(() {
+            // Show loading state
+            if (controller.isLoadingDashboard.value &&
+                controller.recentActivities.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 8),
+                    Text(
+                      'Loading activities...',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColor.kTextSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Show empty state
+            if (controller.recentActivities.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 48,
+                      color: AppColor.kTextSecondary.withValues(alpha: 0.5),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'No recent activity',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: AppColor.kTextSecondary,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Activities will appear here',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColor.kTextSecondary.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Show activity list
+            return RefreshIndicator(
+              onRefresh: controller.onRefresh,
+              child: ListView.builder(
+                physics: AlwaysScrollableScrollPhysics(),
+                itemCount: controller.recentActivities.length,
+                itemBuilder: (context, index) {
+                  final activity = controller.recentActivities[index];
+                  return _buildActivityItem(
+                    name: activity.displayName,
+                    details: activity.details,
+                    statusColor: _getColorFromString(activity.statusColor),
+                    timestamp: activity.time,
+                  );
+                },
+              ),
+            );
+          }),
         ),
       ],
     );
   }
 
+  // Enhanced activity item with timestamp
   Widget _buildActivityItem({
     required String name,
     required String details,
     required Color statusColor,
+    String? timestamp,
   }) {
     return Container(
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border(left: BorderSide(color: statusColor, width: 4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            spreadRadius: 0,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            name,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppColor.kTextDark,
+          // Status indicator
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: statusColor,
+              shape: BoxShape.circle,
             ),
           ),
-          SizedBox(height: 2),
-          Text(
-            details,
-            style: GoogleFonts.poppins(
-              fontSize: 10,
-              color: AppColor.kTextSecondary,
+          SizedBox(width: 12),
+
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.kTextPrimary,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  details,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: AppColor.kTextSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
+
+          // Timestamp
+          if (timestamp != null) ...[
+            SizedBox(width: 8),
+            Text(
+              timestamp,
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                color: AppColor.kTextSecondary.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 class AppColor {
+  // 🎨 UPSEN COLOR PALETTE (Based on logo)
   // Primary colors from mockup design
   static const kPrimaryColor = Color(0xFF26A69A);
   static const kPrimaryDark = Color(0xFF009688);
@@ -62,6 +63,17 @@ class AppColor {
     Color(0xFFEFF6FF), // Light blue
     Color(0xFFE0F7FA), // Light teal
   ];
+
+  static const LinearGradient buttonGradient = LinearGradient(
+    colors: [
+      Color(0xFF8B5CF6), // Purple start
+      Color(0xFF26A69A), // Blue middle
+      Color(0xFF00BCD4), // Cyan end
+    ],
+    stops: [0.0, 0.5, 1.0],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
 
   // Text colors
   static const kTextPrimary = Color(0xFF334155);
