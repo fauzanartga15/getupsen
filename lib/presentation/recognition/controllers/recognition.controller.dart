@@ -53,7 +53,6 @@ class RecognitionController extends GetxController {
   // Auto-attendance variables
   var isAutoAttendanceEnabled = true.obs;
   var autoAttendanceCountdown = 0.obs;
-  Timer? _autoAttendanceTimer;
   EmployeeModel? pendingEmployee;
 
   // ADD: Cooldown management
@@ -62,11 +61,15 @@ class RecognitionController extends GetxController {
       {}; // Track last attendance per employee
   bool isProcessingAttendance = false; // Prevent multiple simultane
 
-  // Detection control
+  //reactive countdown
   Timer? _detectionTimer;
+  Timer? _autoAttendanceTimer;
+
+  // Detection control
   bool _isProcessingFrame = false;
   static const int detectionIntervalMs = 500;
   static const double confidenceThreshold = 75.0;
+  double? currentEmployeeConfidence; // Store confidence for current employee
 
   @override
   void onInit() {
@@ -385,6 +388,15 @@ class RecognitionController extends GetxController {
 
     print("🕐 Auto-attendance triggered for: ${employee.name}");
 
+    // 🔧 FIX: Find and store the correct confidence for this employee
+    currentEmployeeConfidence = null;
+    for (int i = 0; i < recognizedEmployees.length; i++) {
+      if (recognizedEmployees[i]?.id == employee.id) {
+        currentEmployeeConfidence = faceConfidences[i];
+        break;
+      }
+    }
+
     // STOP DETECTION completely during countdown
     _stopDetectionCompletely();
 
@@ -490,7 +502,7 @@ class RecognitionController extends GetxController {
             'employee': employee,
             'attendanceResult': result,
             'userStatus': userStatus,
-            'confidence': faceConfidences[0] ?? 0.0,
+            'confidence': currentEmployeeConfidence ?? 0.0,
           },
         );
 

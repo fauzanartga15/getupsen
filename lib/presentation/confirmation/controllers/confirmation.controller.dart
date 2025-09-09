@@ -15,12 +15,12 @@ class ConfirmationController extends GetxController {
   double confidence = 0.0;
 
   // Reactive countdown
-  var countdown = 10.obs;
-  Timer? _autoRedirectTimer;
+  var countdown = 60.obs;
   Timer? _countdownTimer;
+  Timer? _autoRedirectTimer;
 
   // Computed countdown progress for circular indicator
-  double get countdownProgress => countdown.value / 10.0;
+  double get countdownProgress => countdown.value / 60.0;
 
   @override
   void onInit() {
@@ -53,19 +53,21 @@ class ConfirmationController extends GetxController {
 
   void _startCountdown() {
     // Start auto redirect timer (10 seconds)
-    _autoRedirectTimer = Timer(const Duration(seconds: 60), () {
+    _autoRedirectTimer = Timer(const Duration(seconds: 1), () {
       if (Get.currentRoute.contains('confirmation')) {
         _navigateToHome();
       }
     });
 
     // Start countdown timer (update every second)
-    _countdownTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (countdown.value > 0) {
         countdown.value--;
       } else {
         timer.cancel();
+        _navigateToHome();
       }
+      print("Countdown started: ${countdown.value}");
     });
   }
 
@@ -80,42 +82,42 @@ class ConfirmationController extends GetxController {
     _countdownTimer?.cancel();
   }
 
-  // Helper methods for UI
-  String get employeeName => employee?.name ?? 'Unknown Employee';
+  // // Helper methods for UI
+  // String get employeeName => employee?.name ?? 'Unknown Employee';
 
-  String get employeePosition => employee?.positionName ?? 'Unknown Position';
+  // String get employeePosition => employee?.positionName ?? 'Unknown Position';
 
-  String get employeeDepartment =>
-      employee?.departmentName ?? 'Unknown Department';
+  // String get employeeDepartment =>
+  //     employee?.departmentName ?? 'Unknown Department';
 
-  String get companyName => employee?.company.name ?? 'Unknown Company';
+  // String get companyName => employee?.company.name ?? 'Unknown Company';
 
-  String get attendanceAction =>
-      attendanceResult?.attendance?.actionText ?? 'Check In';
+  // String get attendanceAction =>
+  //     attendanceResult?.attendance?.actionText ?? 'Check In';
 
-  String get attendanceStatus =>
-      attendanceResult?.attendance?.statusText ?? 'PROCESSED';
+  // String get attendanceStatus =>
+  //     attendanceResult?.attendance?.statusText ?? 'PROCESSED';
 
-  String get attendanceMessage =>
-      attendanceResult?.message ?? 'Attendance recorded successfully';
+  // String get attendanceMessage =>
+  //     attendanceResult?.message ?? 'Attendance recorded successfully';
 
-  bool get isAttendanceSuccess => attendanceResult?.status ?? false;
+  // bool get isAttendanceSuccess => attendanceResult?.status ?? false;
 
-  // Format confidence as percentage string
-  String get confidenceText => '${confidence.toStringAsFixed(1)}%';
+  // // Format confidence as percentage string
+  // String get confidenceText => '${confidence.toStringAsFixed(1)}%';
 
-  // Get next action if available
-  String? get nextAction =>
-      attendanceResult?.nextAction ?? userStatus?.nextAction;
+  // // Get next action if available
+  // String? get nextAction =>
+  //     attendanceResult?.nextAction ?? userStatus?.nextAction;
 
-  // Get time stamp for attendance
-  String get timeStamp {
-    final now = DateTime.now();
-    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
-  }
+  // // Get time stamp for attendance
+  // String get timeStamp {
+  //   final now = DateTime.now();
+  //   return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+  // }
 
-  String get dateStamp {
-    final now = DateTime.now();
-    return '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-  }
+  // String get dateStamp {
+  //   final now = DateTime.now();
+  //   return '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+  // }
 }

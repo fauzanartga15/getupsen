@@ -127,55 +127,6 @@ class RecognitionScreen extends GetView<RecognitionController> {
               ? _buildAutoAttendanceCountdown()
               : SizedBox.shrink(),
         ),
-
-        // Di _buildCameraView() Stack children, tambahkan:
-        /* Positioned(
-          bottom: 100,
-          right: 16,
-          child: FloatingActionButton(
-            mini: true,
-            backgroundColor: Colors.orange,
-            onPressed: () async {
-              print("=== API TEST START ===");
-
-              // Test 1: Check employee data
-              final employees =
-                  controller.employeeService.employeesWithEmbedding;
-              print("Employees loaded: ${employees.length}");
-              for (var emp in employees.take(3)) {
-                print("- ${emp.name} (ID: ${emp.id})");
-              }
-
-              // Test 2: Check auth token
-              print("Auth token: ${Get.find<AuthService>().authToken.value}");
-
-              // Test 3: Check user status API - GUNAKAN ID YANG BENAR
-              if (employees.isNotEmpty) {
-                // Cari enkastaff atau gunakan ID yang sesuai
-                final targetEmployee = employees.firstWhere(
-                  (emp) => emp.name.toLowerCase().contains('enkastaff'),
-                  orElse: () => employees.first,
-                );
-                final testId = targetEmployee.id;
-                print(
-                  "Testing user status for: ${targetEmployee.name} (ID: $testId)",
-                );
-
-                final attendanceService = Get.find<AttendanceService>();
-                final status = await attendanceService.getUserStatus(testId);
-                print("User status result: $status");
-                if (status != null) {
-                  print("Can checkin: ${status.canCheckin}");
-                  print("Can checkout: ${status.canCheckout}");
-                  print("Last action: ${status.lastAction}");
-                }
-              }
-
-              print("=== API TEST END ===");
-            },
-            child: Icon(Icons.api, color: Colors.white),
-          ),
-        ),*/
       ],
     );
   }

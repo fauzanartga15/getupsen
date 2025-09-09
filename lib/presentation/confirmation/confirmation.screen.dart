@@ -65,7 +65,11 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
                     const SizedBox(height: 15),
 
                     // Auto Redirect Info
-                    _buildAutoRedirectInfo(),
+                    Obx(
+                      () => controller.countdown.value > 0
+                          ? _buildAutoRedirectInfo()
+                          : SizedBox.shrink(),
+                    ),
                   ],
                 ),
               ),
@@ -119,7 +123,7 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
             border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
           ),
           child: Text(
-            '${controller.confidence.toStringAsFixed(1)}% Face Match',
+            '${controller.confidence.toStringAsFixed(1)}%  Face Match',
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 12,
@@ -139,15 +143,19 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
         alignment: Alignment.center,
         children: [
           // Animated Progress Ring
-          SizedBox(
-            width: 100,
-            height: 100,
-            child: CircularProgressIndicator(
-              value: controller.countdownProgress,
-              strokeWidth: 4,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                controller.countdown <= 3 ? Colors.red.shade300 : Colors.white,
+          Obx(
+            () => SizedBox(
+              width: 100,
+              height: 100,
+              child: CircularProgressIndicator(
+                value: controller.countdownProgress,
+                strokeWidth: 4,
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  controller.countdown <= 3
+                      ? Colors.red.shade300
+                      : Colors.white,
+                ),
               ),
             ),
           ),
@@ -506,7 +514,7 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
               children: [
                 _buildAttendanceInfoRow(
                   'Action',
-                  result?.attendance!.actionText ?? 'Check In',
+                  result?.attendance!.actionText ?? 'attendance',
                 ),
                 const SizedBox(height: 12),
                 _buildAttendanceInfoRow('Time', timeString),
