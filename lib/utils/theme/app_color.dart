@@ -64,6 +64,17 @@ class AppColor {
     Color(0xFFE0F7FA), // Light teal
   ];
 
+  static const LinearGradient kPrimaryGradient = LinearGradient(
+    colors: [
+      Color(0xFF8B5CF6), // Purple start
+      Color(0xFF3B82F6), // Blue middle
+      Color(0xFF00BCD4), // Cyan end
+    ],
+    stops: [0.0, 0.5, 1.0],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
   static const LinearGradient buttonGradient = LinearGradient(
     colors: [
       Color(0xFF8B5CF6), // Purple start

@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../theme/app_color.dart';
-import '../../theme/app_theme.dart';
+import '../../utils/theme/app_color.dart';
+import '../../utils/theme/app_theme.dart';
 import 'controllers/login.controller.dart';
 
 class LoginScreen extends GetView<LoginController> {
@@ -96,7 +96,7 @@ class LoginScreen extends GetView<LoginController> {
       width: 120,
       height: 120,
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient.scale(0.3),
+        gradient: AppColor.kPrimaryGradient.scale(0.3),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
@@ -106,7 +106,17 @@ class LoginScreen extends GetView<LoginController> {
           ),
         ],
       ),
-      child: Icon(Icons.business_center_rounded, size: 60, color: Colors.white),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ClipOval(
+          child: Image.asset(
+            'assets/images/upsen-logo-white.png',
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
     );
   }
 
@@ -114,7 +124,7 @@ class LoginScreen extends GetView<LoginController> {
     return Column(
       children: [
         Text(
-          'Login Tablet',
+          'Login',
           style: AppTheme.titleLarge.copyWith(
             fontSize: 28,
             fontWeight: FontWeight.bold,

@@ -1,9 +1,11 @@
-// File: lib/presentation/home/home.screen.dart (Updated)
+// File: lib/presentation/home/home_screen.dart (Scale Responsive Version)
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../theme/app_color.dart';
+import '../../utils/theme/app_color.dart';
+import '../../utils/helpers/responsive_helper.dart';
 import 'controllers/home.controller.dart';
 
 class HomeScreen extends GetView<HomeController> {
@@ -20,59 +22,98 @@ class HomeScreen extends GetView<HomeController> {
             colors: AppColor.kGradientHomeBg,
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                // Header dengan time dan profile
-                _buildHeader(),
-
-                SizedBox(height: 20),
-
-                // Company header dengan user info
-                _buildCompanyHeader(),
-
-                SizedBox(height: 25),
-
-                // Stats grid
-                _buildStatsGrid(),
-
-                SizedBox(height: 25),
-
-                // Main action button (Face Recognition)
-                _buildMainActionButton(),
-
-                SizedBox(height: 25),
-
-                // Recent activity
-                Expanded(child: _buildRecentActivity()),
-              ],
-            ),
-          ),
-        ),
+        child: SafeArea(child: _buildScaledContent(context)),
       ),
+      // Debug info in development mode
+      // floatingActionButton: kDebugMode
+      //     ? FloatingActionButton(
+      //         mini: true,
+      //         onPressed: () => _showDebugInfo(context),
+      //         child: Icon(Icons.info),
+      //       )
+      //     : null,
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildScaledContent(BuildContext context) {
+    // Check if content needs scrolling
+    final needsScroll = ScaleResponsiveHelper.needsScrolling(context);
+
+    final content = Padding(
+      padding: ScaleResponsiveHelper.getAllPadding(context, 20.0),
+      child: Column(
+        children: [
+          // Header dengan time dan profile
+          _buildHeader(context),
+
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
+
+          // Company header dengan user info
+          _buildCompanyHeader(context),
+
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 25)),
+
+          // Stats grid
+          _buildStatsGrid(context),
+
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 25)),
+
+          // Main action button (Face Recognition)
+          _buildMainActionButton(context),
+
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 25)),
+
+          // Recent activity
+          Expanded(child: _buildRecentActivity(context)),
+        ],
+      ),
+    );
+
+    // Wrap with scroll view if needed
+    if (needsScroll) {
+      return SingleChildScrollView(
+        physics: BouncingScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight:
+                MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top -
+                MediaQuery.of(context).padding.bottom,
+          ),
+          child: IntrinsicHeight(child: content),
+        ),
+      );
+    }
+
+    return content;
+  }
+
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        SizedBox(width: 48), // Spacer
+        SizedBox(
+          width: ScaleResponsiveHelper.getIconSize(context, 48),
+        ), // Spacer
         // Time display
         Obx(
           () => Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: ScaleResponsiveHelper.getSymmetricPadding(
+              context,
+              horizontal: 12,
+              vertical: 6,
+            ),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 8),
+              ),
             ),
             child: Text(
               controller.currentTime.value,
               style: GoogleFonts.poppins(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -80,12 +121,15 @@ class HomeScreen extends GetView<HomeController> {
         ),
 
         // Profile button
-        _buildProfileButton(),
+        _buildProfileButton(context),
       ],
     );
   }
 
-  Widget _buildProfileButton() {
+  Widget _buildProfileButton(BuildContext context) {
+    final buttonSize = ScaleResponsiveHelper.getIconSize(context, 48);
+    final iconSize = ScaleResponsiveHelper.getIconSize(context, 24);
+
     return PopupMenuButton<String>(
       onSelected: _handleMenuSelection,
       itemBuilder: (context) => [
@@ -93,9 +137,17 @@ class HomeScreen extends GetView<HomeController> {
           value: 'profile',
           child: Row(
             children: [
-              Icon(Icons.person_outline, size: 20),
-              SizedBox(width: 12),
-              Text('Profile', style: GoogleFonts.poppins(fontSize: 14)),
+              Icon(
+                Icons.person_outline,
+                size: ScaleResponsiveHelper.getIconSize(context, 20),
+              ),
+              SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 12)),
+              Text(
+                'Profile',
+                style: GoogleFonts.poppins(
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
+                ),
+              ),
             ],
           ),
         ),
@@ -103,9 +155,17 @@ class HomeScreen extends GetView<HomeController> {
           value: 'settings',
           child: Row(
             children: [
-              Icon(Icons.settings_outlined, size: 20),
-              SizedBox(width: 12),
-              Text('Settings', style: GoogleFonts.poppins(fontSize: 14)),
+              Icon(
+                Icons.settings_outlined,
+                size: ScaleResponsiveHelper.getIconSize(context, 20),
+              ),
+              SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 12)),
+              Text(
+                'Settings',
+                style: GoogleFonts.poppins(
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
+                ),
+              ),
             ],
           ),
         ),
@@ -114,12 +174,16 @@ class HomeScreen extends GetView<HomeController> {
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout, size: 20, color: Colors.red),
-              SizedBox(width: 12),
+              Icon(
+                Icons.logout,
+                size: ScaleResponsiveHelper.getIconSize(context, 20),
+                color: Colors.red,
+              ),
+              SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 12)),
               Text(
                 'Logout',
                 style: GoogleFonts.poppins(
-                  fontSize: 14,
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
                   color: Colors.red,
                   fontWeight: FontWeight.w500,
                 ),
@@ -128,23 +192,27 @@ class HomeScreen extends GetView<HomeController> {
           ),
         ),
       ],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      offset: Offset(-20, 50),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ScaleResponsiveHelper.getBorderRadius(context, 12),
+        ),
+      ),
+      offset: Offset(-20, ScaleResponsiveHelper.getSpacing(context, 50)),
       child: Container(
-        width: 48,
-        height: 48,
+        width: buttonSize,
+        height: buttonSize,
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: AppColor.kGradientCyanVibrant),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
               color: AppColor.kPrimaryColor.withValues(alpha: 0.3),
-              blurRadius: 8,
-              spreadRadius: 1,
+              blurRadius: ScaleResponsiveHelper.getSpacing(context, 8),
+              spreadRadius: ScaleResponsiveHelper.getSpacing(context, 1),
             ),
           ],
         ),
-        child: Icon(Icons.person, color: Colors.white, size: 24),
+        child: Icon(Icons.person, color: Colors.white, size: iconSize),
       ),
     );
   }
@@ -163,7 +231,11 @@ class HomeScreen extends GetView<HomeController> {
     }
   }
 
-  Widget _buildCompanyHeader() {
+  Widget _buildCompanyHeader(BuildContext context) {
+    final avatarSize = ScaleResponsiveHelper.getIconSize(context, 80);
+    final avatarRadius = ScaleResponsiveHelper.getBorderRadius(context, 20);
+    final initialsSize = ScaleResponsiveHelper.getFontSize(context, 24);
+
     return Column(
       children: [
         // User avatar dengan glow animation
@@ -171,32 +243,34 @@ class HomeScreen extends GetView<HomeController> {
           animation: controller.glowAnimation,
           builder: (context, child) {
             return Container(
-              width: 80,
-              height: 80,
+              width: avatarSize,
+              height: avatarSize,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: AppColor.kGradientMainAction,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(avatarRadius),
                 boxShadow: [
                   BoxShadow(
                     color: AppColor.kPrimaryColor.withValues(
                       alpha: controller.glowAnimation.value,
                     ),
-                    blurRadius: 25,
-                    spreadRadius: 2,
+                    blurRadius: ScaleResponsiveHelper.getSpacing(context, 25),
+                    spreadRadius: ScaleResponsiveHelper.getSpacing(context, 2),
                   ),
                 ],
               ),
+
               child: Center(
-                child: Text(
-                  controller.userInitials,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    "https://media.istockphoto.com/id/1216157391/id/vektor/desain-logo-huruf-abstrak-e.jpg?s=612x612&w=0&k=20&c=8pnn3QjF5AmHNJ6GqetPeS4uCaGCNFIg-UnAU6hPPRA=",
+                    width: initialsSize * 2,
+                    height: initialsSize * 2,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
@@ -204,12 +278,12 @@ class HomeScreen extends GetView<HomeController> {
           },
         ),
 
-        SizedBox(height: 15),
+        SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 15)),
 
         Text(
           'Welcome,',
           style: GoogleFonts.poppins(
-            fontSize: 16,
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 16),
             fontWeight: FontWeight.w500,
             color: AppColor.kTextPrimary,
           ),
@@ -217,21 +291,21 @@ class HomeScreen extends GetView<HomeController> {
         Text(
           controller.companyName,
           style: GoogleFonts.poppins(
-            fontSize: 20,
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 20),
             fontWeight: FontWeight.bold,
             color: AppColor.kPrimaryColor,
           ),
           textAlign: TextAlign.center,
-          maxLines: 2, // Jika nama company panjang
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
 
-        SizedBox(height: 5),
+        SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 5)),
 
         Text(
           'Employee Attendance Portal',
           style: GoogleFonts.poppins(
-            fontSize: 12,
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
             color: AppColor.kTextSecondary,
           ),
         ),
@@ -239,32 +313,37 @@ class HomeScreen extends GetView<HomeController> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(BuildContext context) {
+    final spacing = ScaleResponsiveHelper.getSpacing(context, 10);
+
     return Row(
       children: [
         Expanded(
           child: Obx(
             () => _buildStatCard(
+              context,
               'PRESENT',
               controller.presentCount.value,
               AppColor.kSuccessGreen,
             ),
           ),
         ),
-        SizedBox(width: 10),
+        SizedBox(width: spacing),
         Expanded(
           child: Obx(
             () => _buildStatCard(
+              context,
               'CHECKED IN',
               controller.checkedInCount.value,
               AppColor.kAccentBlue,
             ),
           ),
         ),
-        SizedBox(width: 10),
+        SizedBox(width: spacing),
         Expanded(
           child: Obx(
             () => _buildStatCard(
+              context,
               'CHECKED OUT',
               controller.checkedOutCount.value,
               AppColor.kStatusLate,
@@ -275,17 +354,24 @@ class HomeScreen extends GetView<HomeController> {
     );
   }
 
-  Widget _buildStatCard(String label, int number, Color color) {
+  Widget _buildStatCard(
+    BuildContext context,
+    String label,
+    int number,
+    Color color,
+  ) {
     return Container(
-      padding: EdgeInsets.all(15),
+      padding: ScaleResponsiveHelper.getAllPadding(context, 15),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(
+          ScaleResponsiveHelper.getBorderRadius(context, 12),
+        ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
+            blurRadius: ScaleResponsiveHelper.getSpacing(context, 15),
             spreadRadius: 0,
           ),
         ],
@@ -295,16 +381,16 @@ class HomeScreen extends GetView<HomeController> {
           Text(
             number.toString(),
             style: GoogleFonts.poppins(
-              fontSize: 20,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 20),
               fontWeight: FontWeight.bold,
               color: AppColor.kPrimaryColor,
             ),
           ),
-          SizedBox(height: 5),
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 5)),
           Text(
             label,
             style: GoogleFonts.poppins(
-              fontSize: 9,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 9),
               color: AppColor.kTextSecondary,
               fontWeight: FontWeight.w500,
             ),
@@ -315,7 +401,7 @@ class HomeScreen extends GetView<HomeController> {
     );
   }
 
-  Widget _buildMainActionButton() {
+  Widget _buildMainActionButton(BuildContext context) {
     return AnimatedBuilder(
       animation: controller.pulseAnimation,
       builder: (context, child) {
@@ -328,39 +414,60 @@ class HomeScreen extends GetView<HomeController> {
               builder: (context, child) {
                 return Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(25),
+                  padding: ScaleResponsiveHelper.getAllPadding(context, 25),
                   decoration: BoxDecoration(
                     gradient: AppColor.buttonGradient,
-
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(
+                      ScaleResponsiveHelper.getBorderRadius(context, 20),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: AppColor.kPrimaryColor.withValues(
                           alpha: controller.glowAnimation.value,
                         ),
-                        blurRadius: 25,
-                        spreadRadius: 2,
+                        blurRadius: ScaleResponsiveHelper.getSpacing(
+                          context,
+                          25,
+                        ),
+                        spreadRadius: ScaleResponsiveHelper.getSpacing(
+                          context,
+                          2,
+                        ),
                       ),
                     ],
                   ),
                   child: Column(
                     children: [
-                      Icon(Icons.camera_alt, color: Colors.white, size: 40),
-                      SizedBox(height: 10),
+                      Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: ScaleResponsiveHelper.getIconSize(context, 40),
+                      ),
+                      SizedBox(
+                        height: ScaleResponsiveHelper.getSpacing(context, 10),
+                      ),
                       Text(
                         'Face Recognition Ready',
                         style: GoogleFonts.poppins(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: ScaleResponsiveHelper.getFontSize(
+                            context,
+                            18,
+                          ),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 5),
+                      SizedBox(
+                        height: ScaleResponsiveHelper.getSpacing(context, 5),
+                      ),
                       Text(
                         'Position your face to begin attendance',
                         style: GoogleFonts.poppins(
                           color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 12,
+                          fontSize: ScaleResponsiveHelper.getFontSize(
+                            context,
+                            12,
+                          ),
                         ),
                       ),
                     ],
@@ -374,7 +481,7 @@ class HomeScreen extends GetView<HomeController> {
     );
   }
 
-  Widget _buildRecentActivity() {
+  Widget _buildRecentActivity(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -384,7 +491,7 @@ class HomeScreen extends GetView<HomeController> {
             Text(
               'Recent Activity',
               style: GoogleFonts.poppins(
-                fontSize: 14,
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
                 fontWeight: FontWeight.bold,
                 color: AppColor.kTextPrimary,
               ),
@@ -393,12 +500,17 @@ class HomeScreen extends GetView<HomeController> {
             Obx(
               () => controller.isRefreshing.value
                   ? SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      width: ScaleResponsiveHelper.getIconSize(context, 16),
+                      height: ScaleResponsiveHelper.getIconSize(context, 16),
+                      child: CircularProgressIndicator(
+                        strokeWidth: ScaleResponsiveHelper.scale(context, 2),
+                      ),
                     )
                   : IconButton(
-                      icon: Icon(Icons.refresh, size: 18),
+                      icon: Icon(
+                        Icons.refresh,
+                        size: ScaleResponsiveHelper.getIconSize(context, 18),
+                      ),
                       onPressed: controller.onRefresh,
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
@@ -406,7 +518,7 @@ class HomeScreen extends GetView<HomeController> {
             ),
           ],
         ),
-        SizedBox(height: 10),
+        SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 10)),
         Expanded(
           child: Obx(() {
             // Show loading state
@@ -417,11 +529,16 @@ class HomeScreen extends GetView<HomeController> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CircularProgressIndicator(),
-                    SizedBox(height: 8),
+                    SizedBox(
+                      height: ScaleResponsiveHelper.getSpacing(context, 8),
+                    ),
                     Text(
                       'Loading activities...',
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: ScaleResponsiveHelper.getFontSize(
+                          context,
+                          12,
+                        ),
                         color: AppColor.kTextSecondary,
                       ),
                     ),
@@ -438,22 +555,32 @@ class HomeScreen extends GetView<HomeController> {
                   children: [
                     Icon(
                       Icons.history,
-                      size: 48,
+                      size: ScaleResponsiveHelper.getIconSize(context, 48),
                       color: AppColor.kTextSecondary.withValues(alpha: 0.5),
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(
+                      height: ScaleResponsiveHelper.getSpacing(context, 8),
+                    ),
                     Text(
                       'No recent activity',
                       style: GoogleFonts.poppins(
-                        fontSize: 14,
+                        fontSize: ScaleResponsiveHelper.getFontSize(
+                          context,
+                          14,
+                        ),
                         color: AppColor.kTextSecondary,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(
+                      height: ScaleResponsiveHelper.getSpacing(context, 4),
+                    ),
                     Text(
                       'Activities will appear here',
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: ScaleResponsiveHelper.getFontSize(
+                          context,
+                          12,
+                        ),
                         color: AppColor.kTextSecondary.withValues(alpha: 0.7),
                       ),
                     ),
@@ -466,11 +593,12 @@ class HomeScreen extends GetView<HomeController> {
             return RefreshIndicator(
               onRefresh: controller.onRefresh,
               child: ListView.builder(
-                physics: AlwaysScrollableScrollPhysics(),
+                physics: BouncingScrollPhysics(),
                 itemCount: controller.recentActivities.length,
                 itemBuilder: (context, index) {
                   final activity = controller.recentActivities[index];
                   return _buildActivityItem(
+                    context,
                     name: activity.displayName,
                     details: activity.details,
                     statusColor: _getColorFromString(activity.statusColor),
@@ -485,33 +613,44 @@ class HomeScreen extends GetView<HomeController> {
     );
   }
 
-  // Enhanced activity item with timestamp
-  Widget _buildActivityItem({
+  Widget _buildActivityItem(
+    BuildContext context, {
     required String name,
     required String details,
     required Color statusColor,
     String? timestamp,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.all(12),
+      margin: EdgeInsets.only(
+        bottom: ScaleResponsiveHelper.getSpacing(context, 8),
+      ),
+      padding: ScaleResponsiveHelper.getAllPadding(context, 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(
+          ScaleResponsiveHelper.getBorderRadius(context, 8),
+        ),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: ScaleResponsiveHelper.getSpacing(context, 4),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         children: [
           // Status indicator
           Container(
-            width: 8,
-            height: 8,
+            width: ScaleResponsiveHelper.scale(context, 8),
+            height: ScaleResponsiveHelper.scale(context, 8),
             decoration: BoxDecoration(
               color: statusColor,
               shape: BoxShape.circle,
             ),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 12)),
 
           // Content
           Expanded(
@@ -521,16 +660,16 @@ class HomeScreen extends GetView<HomeController> {
                 Text(
                   name,
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
+                    fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
                     fontWeight: FontWeight.w600,
                     color: AppColor.kTextPrimary,
                   ),
                 ),
-                SizedBox(height: 2),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 2)),
                 Text(
                   details,
                   style: GoogleFonts.poppins(
-                    fontSize: 11,
+                    fontSize: ScaleResponsiveHelper.getFontSize(context, 11),
                     color: AppColor.kTextSecondary,
                   ),
                 ),
@@ -540,11 +679,11 @@ class HomeScreen extends GetView<HomeController> {
 
           // Timestamp
           if (timestamp != null) ...[
-            SizedBox(width: 8),
+            SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 8)),
             Text(
               timestamp,
               style: GoogleFonts.poppins(
-                fontSize: 10,
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 10),
                 color: AppColor.kTextSecondary.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
@@ -567,4 +706,41 @@ class HomeScreen extends GetView<HomeController> {
         return AppColor.kTextSecondary;
     }
   }
+
+  /*
+  void _showDebugInfo(BuildContext context) {
+    final info = ScaleResponsiveHelper.getDeviceInfo(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Scale Debug Info'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Device Type: ${info['deviceType']}'),
+            Text(
+              'Screen Size: ${info['screenWidth'].toStringAsFixed(0)}x${info['screenHeight'].toStringAsFixed(0)}',
+            ),
+            Text('Scale Factor: ${info['scaleFactor'].toStringAsFixed(3)}'),
+            Text('Width Scale: ${info['widthScale'].toStringAsFixed(3)}'),
+            Text('Height Scale: ${info['heightScale'].toStringAsFixed(3)}'),
+            SizedBox(height: 10),
+            Text('Base Design: 375x812 (iPhone 11)'),
+            Text(
+              'Needs Scrolling: ${ScaleResponsiveHelper.needsScrolling(context)}',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+*/
 }

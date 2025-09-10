@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../data/services/auth_service.dart';
-import '../../../utils/snackbar_helper.dart';
+import '../../../utils/helpers/snackbar_helper.dart';
 
 // CATATAN: GetSingleTickerProviderMixin adalah dari Flutter (bukan Provider state management)
 // Fungsinya untuk menyediakan Ticker untuk AnimationController

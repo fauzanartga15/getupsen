@@ -1,4 +1,5 @@
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class CameraService {
@@ -54,6 +55,8 @@ class CameraService {
 
       // Initialize camera controller
       await _initializeController();
+      // Set orientasi camera setelah initialize
+      await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
 
       _isInitialized = true;
       print("✅ Front camera initialized successfully");

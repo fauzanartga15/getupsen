@@ -1,3 +1,3 @@
 # upsen_entrance
 
-A new Flutter project.
+A new Attendance Apps project by Infazio.

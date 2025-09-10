@@ -1,10 +1,11 @@
-// File: lib/presentation/recognition/recognition.screen.dart (Enhanced)
+// File: lib/presentation/recognition/recognition_screen.dart (Responsive Version)
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:camera/camera.dart';
 
-import '../../theme/app_color.dart';
-import '../../widgets/enhanced_face_overlay_painter.dart';
+import '../../utils/theme/app_color.dart';
+import '../../utils/helpers/responsive_helper.dart';
+import '../../utils/widgets/enhanced_face_overlay_painter.dart';
 import 'controllers/recognition.controller.dart';
 
 class RecognitionScreen extends GetView<RecognitionController> {
@@ -15,89 +16,139 @@ class RecognitionScreen extends GetView<RecognitionController> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Employee Face Recognition'),
+        title: Text(
+          'Employee Face Recognition',
+          style: TextStyle(
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 18),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        toolbarHeight: ScaleResponsiveHelper.scale(context, 56),
         actions: [
-          IconButton(
-            icon: Icon(Icons.pause),
-            onPressed: () {
-              if (controller.isInitialized.value) {
-                controller.toggleDetection();
-              }
-            },
-            tooltip: 'Toggle Detection',
+          Padding(
+            padding: ScaleResponsiveHelper.getSymmetricPadding(
+              context,
+              horizontal: 8,
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.pause,
+                size: ScaleResponsiveHelper.getIconSize(context, 24),
+              ),
+              onPressed: () {
+                if (controller.isInitialized.value) {
+                  controller.toggleDetection();
+                }
+              },
+              tooltip: 'Toggle Detection',
+            ),
           ),
         ],
       ),
       body: Obx(() {
         if (!controller.isInitialized.value) {
-          return _buildLoadingView();
+          return _buildLoadingView(context);
         }
 
         if (controller.errorMessage.isNotEmpty) {
-          return _buildErrorView();
+          return _buildErrorView(context);
         }
 
-        return _buildCameraView();
+        return _buildCameraView(context);
       }),
     );
   }
 
-  Widget _buildLoadingView() {
+  Widget _buildLoadingView(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation(AppColor.kCyanPrimary),
+          SizedBox(
+            width: ScaleResponsiveHelper.scale(context, 60),
+            height: ScaleResponsiveHelper.scale(context, 60),
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(AppColor.kCyanPrimary),
+              strokeWidth: ScaleResponsiveHelper.scale(context, 4),
+            ),
           ),
-          SizedBox(height: 20),
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
           Text(
             'Initializing Camera...',
-            style: TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 16),
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 10)),
           Text(
             'Loading employee database',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorView() {
+  Widget _buildErrorView(BuildContext context) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: ScaleResponsiveHelper.getAllPadding(context, 20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red),
-            SizedBox(height: 20),
+            Icon(
+              Icons.error_outline,
+              size: ScaleResponsiveHelper.getIconSize(context, 64),
+              color: Colors.red,
+            ),
+            SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
             Text(
               'Camera Error',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 20),
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 10)),
             Text(
               controller.errorMessage.value,
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
+              ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: controller.onInit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.kCyanPrimary,
-                foregroundColor: Colors.white,
+            SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 30)),
+            SizedBox(
+              width: ScaleResponsiveHelper.scale(context, 120),
+              height: ScaleResponsiveHelper.scale(context, 48),
+              child: ElevatedButton(
+                onPressed: controller.onInit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.kCyanPrimary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      ScaleResponsiveHelper.getBorderRadius(context, 8),
+                    ),
+                  ),
+                ),
+                child: Text(
+                  'Retry',
+                  style: TextStyle(
+                    fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: Text('Retry'),
             ),
           ],
         ),
@@ -105,33 +156,36 @@ class RecognitionScreen extends GetView<RecognitionController> {
     );
   }
 
-  Widget _buildCameraView() {
+  Widget _buildCameraView(BuildContext context) {
     return Stack(
       children: [
         // Camera preview
-        _buildCameraPreview(),
+        _buildCameraPreview(context),
 
         // Face detection overlay with employee names
-        _buildFaceOverlay(),
+        _buildFaceOverlay(context),
 
         // Control buttons
-        // Positioned(right: 16, top: 16, child: _buildSwitchButton()),
-        Positioned(left: 16, top: 16, child: _buildRecognitionToggleButton()),
+        Positioned(
+          left: ScaleResponsiveHelper.getSpacing(context, 16),
+          top: ScaleResponsiveHelper.getSpacing(context, 16),
+          child: _buildRecognitionToggleButton(context),
+        ),
 
         // Info overlay
-        _buildInfoOverlay(),
+        _buildInfoOverlay(context),
 
-        // NEW: Attendance button
+        // Auto attendance countdown
         Obx(
           () => controller.autoAttendanceCountdown.value > 0
-              ? _buildAutoAttendanceCountdown()
+              ? _buildAutoAttendanceCountdown(context)
               : SizedBox.shrink(),
         ),
       ],
     );
   }
 
-  Widget _buildCameraPreview() {
+  Widget _buildCameraPreview(BuildContext context) {
     return Obx(() {
       final controller = this.controller.cameraController;
 
@@ -144,11 +198,21 @@ class RecognitionScreen extends GetView<RecognitionController> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircularProgressIndicator(color: Colors.white),
-                SizedBox(height: 16),
+                SizedBox(
+                  width: ScaleResponsiveHelper.scale(context, 40),
+                  height: ScaleResponsiveHelper.scale(context, 40),
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: ScaleResponsiveHelper.scale(context, 3),
+                  ),
+                ),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 16)),
                 Text(
                   'Initializing Camera...',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
+                  ),
                 ),
               ],
             ),
@@ -161,12 +225,15 @@ class RecognitionScreen extends GetView<RecognitionController> {
         color: Colors.black,
         width: double.infinity,
         height: double.infinity,
-        child: _buildProperCameraPreview(controller),
+        child: _buildProperCameraPreview(context, controller),
       );
     });
   }
 
-  Widget _buildProperCameraPreview(CameraController controller) {
+  Widget _buildProperCameraPreview(
+    BuildContext context,
+    CameraController controller,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
@@ -224,8 +291,7 @@ class RecognitionScreen extends GetView<RecognitionController> {
     );
   }
 
-  // ENHANCED: Face overlay with employee names and selection
-  Widget _buildFaceOverlay() {
+  Widget _buildFaceOverlay(BuildContext context) {
     return Positioned.fill(
       child: Obx(() {
         if (controller.faces.isEmpty) {
@@ -251,7 +317,6 @@ class RecognitionScreen extends GetView<RecognitionController> {
     );
   }
 
-  // NEW: Handle face tap for selection
   void _handleFaceTap(TapDownDetails details) {
     final tapPosition = details.localPosition;
 
@@ -268,21 +333,25 @@ class RecognitionScreen extends GetView<RecognitionController> {
     }
   }
 
-  // Helper to transform face coordinates
   Rect _transformFaceRect(int faceIndex) {
     if (faceIndex >= controller.faces.length) return Rect.zero;
 
     final face = controller.faces[faceIndex];
-    // This is simplified - in real implementation, use same transform logic as painter
     return face.boundingBox;
   }
 
-  Widget _buildRecognitionToggleButton() {
+  Widget _buildRecognitionToggleButton(BuildContext context) {
+    final buttonSize = ScaleResponsiveHelper.scale(context, 50);
+
     return Obx(
       () => Container(
+        width: buttonSize,
+        height: buttonSize,
         decoration: BoxDecoration(
           color: Colors.black54,
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(
+            ScaleResponsiveHelper.getBorderRadius(context, 25),
+          ),
         ),
         child: IconButton(
           icon: Icon(
@@ -292,7 +361,7 @@ class RecognitionScreen extends GetView<RecognitionController> {
             color: controller.isRecognitionEnabled.value
                 ? AppColor.kSuccessGreen
                 : Colors.grey,
-            size: 24,
+            size: ScaleResponsiveHelper.getIconSize(context, 24),
           ),
           onPressed: () {
             if (controller.isInitialized.value) {
@@ -307,18 +376,22 @@ class RecognitionScreen extends GetView<RecognitionController> {
     );
   }
 
-  Widget _buildInfoOverlay() {
+  Widget _buildInfoOverlay(BuildContext context) {
+    final bottomPadding = controller.showAttendanceButton.value
+        ? ScaleResponsiveHelper.scale(context, 180)
+        : ScaleResponsiveHelper.scale(context, 100);
+
     return Positioned(
-      left: 16,
-      right: 16,
-      bottom: controller.showAttendanceButton.value
-          ? 180
-          : 100, // Adjust for button
+      left: ScaleResponsiveHelper.getSpacing(context, 16),
+      right: ScaleResponsiveHelper.getSpacing(context, 16),
+      bottom: bottomPadding,
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: ScaleResponsiveHelper.getAllPadding(context, 16),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            ScaleResponsiveHelper.getBorderRadius(context, 12),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -329,8 +402,8 @@ class RecognitionScreen extends GetView<RecognitionController> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: ScaleResponsiveHelper.scale(context, 12),
+                    height: ScaleResponsiveHelper.scale(context, 12),
                     decoration: BoxDecoration(
                       color: controller.isDetecting.value
                           ? AppColor.kSuccessGreen
@@ -338,20 +411,25 @@ class RecognitionScreen extends GetView<RecognitionController> {
                       shape: BoxShape.circle,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Text(
-                    controller.detectionStats.value,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 8)),
+                  Flexible(
+                    child: Text(
+                      controller.detectionStats.value,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: ScaleResponsiveHelper.getFontSize(
+                          context,
+                          16,
+                        ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-            SizedBox(height: 4),
+            SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 4)),
 
             // Recognition stats
             Obx(
@@ -360,20 +438,26 @@ class RecognitionScreen extends GetView<RecognitionController> {
                       controller.recognitionStats.value,
                       style: TextStyle(
                         color: AppColor.kSuccessGreen,
-                        fontSize: 14,
+                        fontSize: ScaleResponsiveHelper.getFontSize(
+                          context,
+                          14,
+                        ),
                         fontWeight: FontWeight.w500,
                       ),
                     )
                   : SizedBox.shrink(),
             ),
 
-            SizedBox(height: 8),
+            SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 8)),
 
             // Employee database info
             Obx(
               () => Text(
                 '${controller.employeeService.employeesWithEmbedding.length} employees in database',
-                style: TextStyle(color: AppColor.kCyanPrimary, fontSize: 11),
+                style: TextStyle(
+                  color: AppColor.kCyanPrimary,
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 11),
+                ),
               ),
             ),
 
@@ -381,7 +465,10 @@ class RecognitionScreen extends GetView<RecognitionController> {
             Obx(
               () => Text(
                 controller.cameraInfo.value,
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
+                ),
               ),
             ),
           ],
@@ -390,26 +477,29 @@ class RecognitionScreen extends GetView<RecognitionController> {
     );
   }
 
-  // NEW: Attendance button
-
-  Widget _buildAutoAttendanceCountdown() {
+  Widget _buildAutoAttendanceCountdown(BuildContext context) {
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.8),
         child: Center(
           child: Container(
-            padding: EdgeInsets.all(24),
-            margin: EdgeInsets.symmetric(horizontal: 32),
+            padding: ScaleResponsiveHelper.getAllPadding(context, 24),
+            margin: ScaleResponsiveHelper.getSymmetricPadding(
+              context,
+              horizontal: 32,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [AppColor.kCyanPrimary, AppColor.kCyanSecondary],
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 20),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: AppColor.kCyanPrimary.withValues(alpha: 0.4),
-                  blurRadius: 20,
-                  spreadRadius: 5,
+                  blurRadius: ScaleResponsiveHelper.scale(context, 20),
+                  spreadRadius: ScaleResponsiveHelper.scale(context, 5),
                 ),
               ],
             ),
@@ -418,16 +508,16 @@ class RecognitionScreen extends GetView<RecognitionController> {
               children: [
                 // Countdown circle
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: ScaleResponsiveHelper.scale(context, 100),
+                  height: ScaleResponsiveHelper.scale(context, 100),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 10,
-                        spreadRadius: 2,
+                        blurRadius: ScaleResponsiveHelper.scale(context, 10),
+                        spreadRadius: ScaleResponsiveHelper.scale(context, 2),
                       ),
                     ],
                   ),
@@ -436,7 +526,10 @@ class RecognitionScreen extends GetView<RecognitionController> {
                       () => Text(
                         controller.autoAttendanceCountdown.value.toString(),
                         style: TextStyle(
-                          fontSize: 48,
+                          fontSize: ScaleResponsiveHelper.getFontSize(
+                            context,
+                            48,
+                          ),
                           fontWeight: FontWeight.bold,
                           color: AppColor.kCyanPrimary,
                         ),
@@ -445,7 +538,7 @@ class RecognitionScreen extends GetView<RecognitionController> {
                   ),
                 ),
 
-                SizedBox(height: 20),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
 
                 // Employee info
                 if (controller.pendingEmployee != null) ...[
@@ -453,29 +546,35 @@ class RecognitionScreen extends GetView<RecognitionController> {
                     'Employee Detected',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: ScaleResponsiveHelper.getFontSize(context, 16),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(context, 8),
+                  ),
                   Text(
                     controller.pendingEmployee!.name,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: ScaleResponsiveHelper.getFontSize(context, 24),
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(context, 4),
+                  ),
                   Text(
                     controller.pendingEmployee!.departmentName,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 14,
+                      fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(context, 20),
+                  ),
                 ],
 
                 // Auto message
@@ -483,29 +582,37 @@ class RecognitionScreen extends GetView<RecognitionController> {
                   'Proceeding to attendance in...',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
+                    fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
                   ),
                 ),
 
-                SizedBox(height: 16),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 16)),
 
                 // Cancel button
                 SizedBox(
                   width: double.infinity,
+                  height: ScaleResponsiveHelper.scale(context, 48),
                   child: ElevatedButton(
                     onPressed: controller.cancelAutoAttendance,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white.withValues(alpha: 0.2),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(
+                          ScaleResponsiveHelper.getBorderRadius(context, 8),
+                        ),
                         side: BorderSide(color: Colors.white, width: 1),
                       ),
                     ),
                     child: Text(
                       'Cancel',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: ScaleResponsiveHelper.getFontSize(
+                          context,
+                          14,
+                        ),
+                      ),
                     ),
                   ),
                 ),

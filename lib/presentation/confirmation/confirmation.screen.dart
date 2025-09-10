@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../theme/app_color.dart';
 import '../../data/models/employee_model.dart';
 import '../../infrastructure/navigation/routes.dart';
+import '../../utils/helpers/responsive_helper.dart';
+import '../../utils/theme/app_color.dart';
 import 'controllers/confirmation.controller.dart';
 
 class ConfirmationScreen extends GetView<ConfirmationController> {
@@ -23,110 +24,129 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
             stops: [0.1, 0.5, 1.0],
           ),
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight:
-                    MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom,
+        child: SafeArea(child: _buildScaledContent(context)),
+      ),
+    );
+  }
+
+  Widget _buildScaledContent(BuildContext context) {
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight:
+              MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              MediaQuery.of(context).padding.bottom,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width * 0.05,
+            vertical: 30.0,
+          ),
+
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Success Badge & Confidence
+              _buildSuccessBadge(context),
+              SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
+
+              // Animated Success Icon with Countdown
+              _buildSuccessIcon(context),
+              SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
+
+              // Company Info Card
+              _buildCompanyCard(context),
+              SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
+
+              // Employee Card
+              _buildEmployeeCard(context),
+              SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 20)),
+
+              // Attendance Details Card
+              _buildAttendanceCard(context),
+              SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 30)),
+
+              // Action Buttons
+              _buildActionButtons(context),
+              SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 15)),
+
+              // Auto Redirect Info
+              Obx(
+                () => controller.countdown.value > 0
+                    ? _buildAutoRedirectInfo(context)
+                    : SizedBox.shrink(),
               ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width * 0.05,
-                  vertical: 30.0,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Success Badge & Confidence
-                    _buildSuccessBadge(),
-                    const SizedBox(height: 20),
-
-                    // Animated Success Icon with Countdown
-                    _buildSuccessIcon(),
-                    const SizedBox(height: 20),
-
-                    // Company Info Card
-                    _buildCompanyCard(),
-                    const SizedBox(height: 20),
-
-                    // Employee Card
-                    _buildEmployeeCard(),
-                    const SizedBox(height: 20),
-
-                    // Attendance Details Card
-                    _buildAttendanceCard(),
-                    const SizedBox(height: 30),
-
-                    // Action Buttons
-                    _buildActionButtons(),
-                    const SizedBox(height: 15),
-
-                    // Auto Redirect Info
-                    Obx(
-                      () => controller.countdown.value > 0
-                          ? _buildAutoRedirectInfo()
-                          : SizedBox.shrink(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSuccessBadge() {
+  Widget _buildSuccessBadge(BuildContext context) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: ScaleResponsiveHelper.getSymmetricPadding(
+            context,
+            horizontal: 16,
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             gradient: const LinearGradient(colors: AppColor.kGradientSuccess),
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(
+              ScaleResponsiveHelper.getBorderRadius(context, 25),
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColor.kSuccessGreen.withValues(alpha: 0.4),
-                blurRadius: 15,
-                spreadRadius: 2,
+                blurRadius: ScaleResponsiveHelper.scale(context, 15),
+                spreadRadius: ScaleResponsiveHelper.scale(context, 2),
               ),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
+              Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: ScaleResponsiveHelper.getIconSize(context, 20),
+              ),
+              SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 8)),
               Text(
                 controller.attendanceResult?.status == true
                     ? 'Attendance Successful'
                     : 'Attendance Failed',
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 12)),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: ScaleResponsiveHelper.getSymmetricPadding(
+            context,
+            horizontal: 12,
+            vertical: 6,
+          ),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(
+              ScaleResponsiveHelper.getBorderRadius(context, 20),
+            ),
             border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
           ),
           child: Text(
-            '${controller.confidence.toStringAsFixed(1)}%  Face Match',
+            '${controller.confidence.toStringAsFixed(1)}% Face Match',
             style: GoogleFonts.poppins(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -135,21 +155,25 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildSuccessIcon() {
+  Widget _buildSuccessIcon(BuildContext context) {
+    final iconSize = ScaleResponsiveHelper.scale(context, 120);
+    final progressSize = ScaleResponsiveHelper.scale(context, 100);
+    final innerSize = ScaleResponsiveHelper.scale(context, 80);
+
     return SizedBox(
-      width: 120,
-      height: 120,
+      width: iconSize,
+      height: iconSize,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Animated Progress Ring
           Obx(
             () => SizedBox(
-              width: 100,
-              height: 100,
+              width: progressSize,
+              height: progressSize,
               child: CircularProgressIndicator(
                 value: controller.countdownProgress,
-                strokeWidth: 4,
+                strokeWidth: ScaleResponsiveHelper.scale(context, 4),
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   controller.countdown <= 3
@@ -161,16 +185,16 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
           ),
           // Success Icon with Countdown
           Container(
-            width: 80,
-            height: 80,
+            width: innerSize,
+            height: innerSize,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  spreadRadius: 2,
+                  blurRadius: ScaleResponsiveHelper.scale(context, 20),
+                  spreadRadius: ScaleResponsiveHelper.scale(context, 2),
                 ),
               ],
             ),
@@ -185,16 +209,18 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
                     color: controller.attendanceResult?.status == true
                         ? AppColor.kSuccessGreen
                         : Colors.red.shade400,
-                    size: 32,
+                    size: ScaleResponsiveHelper.getIconSize(context, 32),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(context, 2),
+                  ),
                   Text(
                     '${controller.countdown}',
                     style: GoogleFonts.poppins(
                       color: controller.countdown <= 3
                           ? Colors.red.shade400
                           : AppColor.kCyanSecondary,
-                      fontSize: 12,
+                      fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -207,20 +233,23 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildCompanyCard() {
+  Widget _buildCompanyCard(BuildContext context) {
     final employee = controller.employee;
     if (employee == null) return SizedBox.shrink();
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: ScaleResponsiveHelper.getAllPadding(context, 16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          ScaleResponsiveHelper.getBorderRadius(context, 16),
+        ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
+            blurRadius: ScaleResponsiveHelper.scale(context, 20),
             spreadRadius: 0,
           ),
         ],
@@ -229,17 +258,23 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
         children: [
           // Company Logo/Icon
           Container(
-            width: 50,
-            height: 50,
+            width: ScaleResponsiveHelper.scale(context, 50),
+            height: ScaleResponsiveHelper.scale(context, 50),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: AppColor.kGradientCyanVibrant,
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 12),
+              ),
             ),
-            child: Icon(Icons.business, color: Colors.white, size: 24),
+            child: Icon(
+              Icons.business,
+              color: Colors.white,
+              size: ScaleResponsiveHelper.getIconSize(context, 24),
+            ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 16)),
           // Company Info
           Expanded(
             child: Column(
@@ -248,18 +283,18 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
                 Text(
                   employee.company.name,
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: ScaleResponsiveHelper.getFontSize(context, 16),
                     fontWeight: FontWeight.bold,
                     color: AppColor.kTextDark,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 4)),
                 Text(
                   employee.cabang?.name ?? 'Main Office',
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
+                    fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
                     color: AppColor.kTextSecondary,
                   ),
                 ),
@@ -268,10 +303,16 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
           ),
           // Status Indicator
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: ScaleResponsiveHelper.getSymmetricPadding(
+              context,
+              horizontal: 8,
+              vertical: 4,
+            ),
             decoration: BoxDecoration(
               color: AppColor.kSuccessGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 8),
+              ),
               border: Border.all(
                 color: AppColor.kSuccessGreen.withValues(alpha: 0.3),
               ),
@@ -279,7 +320,7 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
             child: Text(
               'VERIFIED',
               style: GoogleFonts.poppins(
-                fontSize: 10,
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 10),
                 fontWeight: FontWeight.bold,
                 color: AppColor.kSuccessGreen,
               ),
@@ -290,21 +331,25 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildEmployeeCard() {
+  Widget _buildEmployeeCard(BuildContext context) {
     final employee = controller.employee;
     if (employee == null) return SizedBox.shrink();
 
+    final avatarSize = ScaleResponsiveHelper.scale(context, 90);
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: ScaleResponsiveHelper.getAllPadding(context, 20),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(
+          ScaleResponsiveHelper.getBorderRadius(context, 20),
+        ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 35,
+            blurRadius: ScaleResponsiveHelper.scale(context, 35),
             spreadRadius: 0,
           ),
         ],
@@ -313,15 +358,15 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
         children: [
           // Employee Photo
           Container(
-            width: 90,
-            height: 90,
+            width: avatarSize,
+            height: avatarSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: AppColor.kCyanPrimary.withValues(alpha: 0.4),
-                  blurRadius: 20,
-                  spreadRadius: 2,
+                  blurRadius: ScaleResponsiveHelper.scale(context, 20),
+                  spreadRadius: ScaleResponsiveHelper.scale(context, 2),
                 ),
               ],
             ),
@@ -331,18 +376,18 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
                       employee.fullImageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          _buildDefaultAvatar(employee),
+                          _buildDefaultAvatar(context, employee),
                     )
-                  : _buildDefaultAvatar(employee),
+                  : _buildDefaultAvatar(context, employee),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 16)),
 
           // Employee Name
           Text(
             employee.name,
             style: GoogleFonts.poppins(
-              fontSize: 20,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 20),
               fontWeight: FontWeight.bold,
               color: AppColor.kTextDark,
             ),
@@ -350,23 +395,23 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 4)),
 
           // Employee ID
           Text(
             'ID: ${employee.nip}',
             style: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
               color: AppColor.kTextSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 16)),
 
           // Position & Department
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: ScaleResponsiveHelper.getAllPadding(context, 16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -374,18 +419,28 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
                   AppColor.kCyanSecondary.withValues(alpha: 0.05),
                 ],
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 12),
+              ),
               border: Border.all(
                 color: AppColor.kCyanPrimary.withValues(alpha: 0.2),
               ),
             ),
             child: Column(
               children: [
-                _buildEmployeeInfoRow('Position', employee.positionName),
-                const SizedBox(height: 8),
-                _buildEmployeeInfoRow('Department', employee.departmentName),
-                const SizedBox(height: 8),
-                _buildEmployeeInfoRow('Shift', employee.shiftName),
+                _buildEmployeeInfoRow(
+                  context,
+                  'Position',
+                  employee.positionName,
+                ),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 8)),
+                _buildEmployeeInfoRow(
+                  context,
+                  'Department',
+                  employee.departmentName,
+                ),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 8)),
+                _buildEmployeeInfoRow(context, 'Shift', employee.shiftName),
               ],
             ),
           ),
@@ -394,7 +449,7 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildDefaultAvatar(EmployeeModel employee) {
+  Widget _buildDefaultAvatar(BuildContext context, EmployeeModel employee) {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: AppColor.kGradientCyanVibrant),
@@ -405,7 +460,7 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
           _getEmployeeInitials(employee.name),
           style: GoogleFonts.poppins(
             color: Colors.white,
-            fontSize: 28,
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 28),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -423,14 +478,18 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     return 'EM';
   }
 
-  Widget _buildEmployeeInfoRow(String label, String value) {
+  Widget _buildEmployeeInfoRow(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: GoogleFonts.poppins(
-            fontSize: 12,
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
             color: AppColor.kTextSecondary,
             fontWeight: FontWeight.w500,
           ),
@@ -439,7 +498,7 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
           child: Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 13,
+              fontSize: ScaleResponsiveHelper.getFontSize(context, 13),
               fontWeight: FontWeight.bold,
               color: AppColor.kCyanSecondary,
             ),
@@ -451,24 +510,27 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildAttendanceCard() {
+  Widget _buildAttendanceCard(BuildContext context) {
     final result = controller.attendanceResult;
     final now = DateTime.now();
     final timeString =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
     final dateString =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: ScaleResponsiveHelper.getAllPadding(context, 20),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          ScaleResponsiveHelper.getBorderRadius(context, 16),
+        ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 25,
+            blurRadius: ScaleResponsiveHelper.scale(context, 25),
             spreadRadius: 0,
           ),
         ],
@@ -480,54 +542,70 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: ScaleResponsiveHelper.getAllPadding(context, 8),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: AppColor.kGradientCyanVibrant,
                   ),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(
+                    ScaleResponsiveHelper.getBorderRadius(context, 8),
+                  ),
                 ),
-                child: Icon(Icons.access_time, color: Colors.white, size: 20),
+                child: Icon(
+                  Icons.access_time,
+                  color: Colors.white,
+                  size: ScaleResponsiveHelper.getIconSize(context, 20),
+                ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 12)),
               Text(
                 'Attendance Details',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 16),
                   fontWeight: FontWeight.bold,
                   color: AppColor.kTextDark,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 16)),
 
           // Attendance Info
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: ScaleResponsiveHelper.getAllPadding(context, 16),
             decoration: BoxDecoration(
               color: AppColor.kNeutralLight,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 12),
+              ),
             ),
             child: Column(
               children: [
                 _buildAttendanceInfoRow(
+                  context,
                   'Action',
                   result?.attendance!.actionText ?? 'attendance',
                 ),
-                const SizedBox(height: 12),
-                _buildAttendanceInfoRow('Time', timeString),
-                const SizedBox(height: 12),
-                _buildAttendanceInfoRow('Date', dateString),
-                const SizedBox(height: 12),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 12)),
+                _buildAttendanceInfoRow(context, 'Time', timeString),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 12)),
+                _buildAttendanceInfoRow(context, 'Date', dateString),
+                SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 12)),
                 _buildAttendanceInfoRow(
+                  context,
                   'Status',
                   result?.attendance!.statusText ?? 'ON TIME',
                 ),
                 if (result?.nextAction != null) ...[
-                  const SizedBox(height: 12),
-                  _buildAttendanceInfoRow('Next Action', result!.nextAction!),
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(context, 12),
+                  ),
+                  _buildAttendanceInfoRow(
+                    context,
+                    'Next Action',
+                    result!.nextAction!,
+                  ),
                 ],
               ],
             ),
@@ -535,15 +613,17 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
 
           // Success Message
           if (result!.message.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: ScaleResponsiveHelper.getSpacing(context, 16)),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: ScaleResponsiveHelper.getAllPadding(context, 12),
               decoration: BoxDecoration(
                 color: result.status
                     ? AppColor.kSuccessGreen.withValues(alpha: 0.1)
                     : Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(
+                  ScaleResponsiveHelper.getBorderRadius(context, 8),
+                ),
                 border: Border.all(
                   color: result.status
                       ? AppColor.kSuccessGreen.withValues(alpha: 0.3)
@@ -557,14 +637,17 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
                     color: result.status
                         ? AppColor.kSuccessGreen
                         : Colors.red.shade600,
-                    size: 20,
+                    size: ScaleResponsiveHelper.getIconSize(context, 20),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 8)),
                   Expanded(
                     child: Text(
                       result.message,
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: ScaleResponsiveHelper.getFontSize(
+                          context,
+                          12,
+                        ),
                         color: result.status
                             ? AppColor.kSuccessGreen
                             : Colors.red.shade600,
@@ -581,14 +664,18 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildAttendanceInfoRow(String label, String value) {
+  Widget _buildAttendanceInfoRow(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: GoogleFonts.poppins(
-            fontSize: 12,
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
             color: AppColor.kTextSecondary,
             fontWeight: FontWeight.w500,
           ),
@@ -596,7 +683,7 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
         Text(
           value,
           style: GoogleFonts.poppins(
-            fontSize: 13,
+            fontSize: ScaleResponsiveHelper.getFontSize(context, 13),
             fontWeight: FontWeight.bold,
             color: AppColor.kCyanSecondary,
           ),
@@ -605,51 +692,26 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
     return Row(
       children: [
-        // Back to Recognition Button
-        // Expanded(
-        //   child: Container(
-        //     decoration: BoxDecoration(
-        //       border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-        //       borderRadius: BorderRadius.circular(12),
-        //     ),
-        //     child: MaterialButton(
-        //       onPressed: () {
-        //         controller.cancelAutoRedirect();
-        //         Get.back();
-        //       },
-        //       padding: const EdgeInsets.symmetric(vertical: 15),
-        //       shape: RoundedRectangleBorder(
-        //         borderRadius: BorderRadius.circular(12),
-        //       ),
-        //       child: Text(
-        //         'Back',
-        //         style: GoogleFonts.poppins(
-        //           color: Colors.white,
-        //           fontSize: 14,
-        //           fontWeight: FontWeight.w600,
-        //         ),
-        //       ),
-        //     ),
-        //   ),
-        // ),
-        // const SizedBox(width: 16),
         // Continue to Home Button
         Expanded(
           flex: 2,
           child: Container(
+            height: ScaleResponsiveHelper.scale(context, 48),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: AppColor.kGradientCyanVibrant,
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 12),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: AppColor.kCyanPrimary.withValues(alpha: 0.4),
-                  blurRadius: 20,
-                  spreadRadius: 1,
+                  blurRadius: ScaleResponsiveHelper.scale(context, 20),
+                  spreadRadius: ScaleResponsiveHelper.scale(context, 1),
                 ),
               ],
             ),
@@ -658,15 +720,16 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
                 controller.cancelAutoRedirect();
                 Get.offAllNamed(Routes.HOME);
               },
-              padding: const EdgeInsets.symmetric(vertical: 15),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(
+                  ScaleResponsiveHelper.getBorderRadius(context, 12),
+                ),
               ),
               child: Text(
                 'Continue to Home',
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -677,12 +740,18 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
     );
   }
 
-  Widget _buildAutoRedirectInfo() {
+  Widget _buildAutoRedirectInfo(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: ScaleResponsiveHelper.getSymmetricPadding(
+        context,
+        horizontal: 20,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(
+          ScaleResponsiveHelper.getBorderRadius(context, 20),
+        ),
         border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Row(
@@ -691,15 +760,15 @@ class ConfirmationScreen extends GetView<ConfirmationController> {
           Icon(
             Icons.home,
             color: Colors.white.withValues(alpha: 0.8),
-            size: 16,
+            size: ScaleResponsiveHelper.getIconSize(context, 16),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 8)),
           Obx(
             () => Text(
               'Returning to home in ${controller.countdown.value}s...',
               style: GoogleFonts.poppins(
                 color: Colors.white.withValues(alpha: 0.8),
-                fontSize: 12,
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
                 fontWeight: FontWeight.w500,
               ),
             ),

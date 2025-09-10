@@ -70,7 +70,7 @@ class EmployeeService extends GetxService {
     return timeDiff.inSeconds <= 30; // Valid for 30 seconds
   }
 
-  // 🆕 NEW: Clear recognition data (after attendance is submitted)
+  // 🆕 Clear recognition data (after attendance is submitted)
   void clearLastRecognition() {
     lastRecognizedEmployee.value = null;
     lastRecognitionConfidence.value = 0.0;

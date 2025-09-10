@@ -1,6 +1,8 @@
-// File: lib/presentation/home/controllers/home.controller.dart (Updated)
+// File: lib/presentation/home/controllers/home_controller.dart (Scale Responsive Version)
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../data/models/dashboard_model.dart';
 import '../../../data/services/auth_service.dart';
@@ -8,7 +10,9 @@ import '../../../data/services/dashboard_service.dart';
 import '../../../data/services/employee_service.dart';
 import '../../../data/services/location_service.dart';
 import '../../../infrastructure/navigation/routes.dart';
-import '../../../utils/snackbar_helper.dart';
+import '../../../utils/helpers/responsive_helper.dart';
+import '../../../utils/helpers/snackbar_helper.dart';
+import '../../../utils/theme/app_color.dart';
 
 class HomeController extends GetxController with GetTickerProviderStateMixin {
   // Auth service
@@ -97,7 +101,7 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
   Future<void> loadDashboardData() async {
     try {
       isLoadingDashboard(true);
-      print("🔄 Loading dashboard data...");
+      print("📄 Loading dashboard data...");
 
       final stats = await _dashboardService.getDashboardStats();
 
@@ -152,7 +156,7 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
 
   // Load fallback data when API fails
   void _loadFallbackData() {
-    print("🔄 Loading fallback data...");
+    print("📄 Loading fallback data...");
 
     // Convert mock data to RecentActivity objects for consistency
     final mockActivities = [
@@ -212,89 +216,157 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
     Get.toNamed(Routes.RECOGNITION);
   }
 
-  // Profile & menu methods
+  // Scale Responsive Profile Dialog
   void showProfile() {
     final user = _authService.currentUser.value;
     if (user == null) return;
 
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
+          ),
+        ),
+        child: Container(
+          width: ScaleResponsiveHelper.scaleWidth(Get.context!, 350),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(Get.context!).size.width * 0.9,
+            maxHeight: MediaQuery.of(Get.context!).size.height * 0.8,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF26A69A), Color(0xFF009688)],
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        width: ScaleResponsiveHelper.getIconSize(
+                          Get.context!,
+                          40,
+                        ),
+                        height: ScaleResponsiveHelper.getIconSize(
+                          Get.context!,
+                          40,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: AppColor.kGradientCyanVibrant,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: ScaleResponsiveHelper.getIconSize(
+                            Get.context!,
+                            20,
+                          ),
+                        ),
                       ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.person, color: Colors.white, size: 20),
+                      SizedBox(
+                        width: ScaleResponsiveHelper.getSpacing(
+                          Get.context!,
+                          12,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Profile Information',
+                          style: GoogleFonts.poppins(
+                            fontSize: ScaleResponsiveHelper.getFontSize(
+                              Get.context!,
+                              18,
+                            ),
+                            fontWeight: FontWeight.bold,
+                            color: AppColor.kTextPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Profile Information',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
+                  ),
+
+                  // Profile info
+                  _buildProfileItem(Get.context!, 'Name', user.name),
+                  _buildProfileItem(Get.context!, 'Email', user.email),
+                  _buildProfileItem(
+                    Get.context!,
+                    'Phone',
+                    user.phone.isNotEmpty ? user.phone : 'Not provided',
+                  ),
+                  _buildProfileItem(Get.context!, 'Role', user.role),
+                  _buildProfileItem(
+                    Get.context!,
+                    'Company ID',
+                    user.companyId.toString(),
+                  ),
+
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
+                  ),
+
+                  // Close button
+                  SizedBox(
+                    width: double.infinity,
+                    height: ScaleResponsiveHelper.scale(Get.context!, 48),
+                    child: ElevatedButton(
+                      onPressed: () => Get.back(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColor.kPrimaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            ScaleResponsiveHelper.getBorderRadius(
+                              Get.context!,
+                              8,
+                            ),
+                          ),
+                        ),
+                        elevation: ScaleResponsiveHelper.scale(Get.context!, 2),
+                      ),
+                      child: Text(
+                        'Close',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: ScaleResponsiveHelper.getFontSize(
+                            Get.context!,
+                            14,
+                          ),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-
-              // Profile info
-              _buildProfileItem('Name', user.name),
-              _buildProfileItem('Email', user.email),
-              _buildProfileItem(
-                'Phone',
-                user.phone.isNotEmpty ? user.phone : 'Not provided',
-              ),
-              _buildProfileItem('Role', user.role),
-              _buildProfileItem('Company ID', user.companyId.toString()),
-
-              SizedBox(height: 20),
-
-              // Close button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Get.back(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF26A69A),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text('Close', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileItem(String label, String value) {
+  Widget _buildProfileItem(BuildContext context, String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.symmetric(
+        vertical: ScaleResponsiveHelper.getSpacing(context, 4),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: ScaleResponsiveHelper.scale(context, 80),
             child: Text(
               '$label:',
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF64748B),
+              style: GoogleFonts.poppins(
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
+                color: AppColor.kTextSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -302,9 +374,9 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF1E293B),
+              style: GoogleFonts.poppins(
+                fontSize: ScaleResponsiveHelper.getFontSize(context, 12),
+                color: AppColor.kTextPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -314,157 +386,360 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
     );
   }
 
+  // Scale Responsive Settings Dialog
   void showSettings() {
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Row(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
+          ),
+        ),
+        child: Container(
+          width: ScaleResponsiveHelper.scaleWidth(Get.context!, 350),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(Get.context!).size.width * 0.9,
+            maxHeight: MediaQuery.of(Get.context!).size.height * 0.8,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.settings, color: Color(0xFF26A69A)),
-                  SizedBox(width: 12),
-                  Text(
-                    'Settings',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  // Header
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.settings,
+                        color: AppColor.kPrimaryColor,
+                        size: ScaleResponsiveHelper.getIconSize(
+                          Get.context!,
+                          24,
+                        ),
+                      ),
+                      SizedBox(
+                        width: ScaleResponsiveHelper.getSpacing(
+                          Get.context!,
+                          12,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Settings',
+                          style: GoogleFonts.poppins(
+                            fontSize: ScaleResponsiveHelper.getFontSize(
+                              Get.context!,
+                              18,
+                            ),
+                            fontWeight: FontWeight.bold,
+                            color: AppColor.kTextPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
+                  ),
+
+                  // Settings options
+                  _buildSettingsItem(
+                    Get.context!,
+                    icon: Icons.camera_alt,
+                    title: 'Camera Settings',
+                    onTap: () {
+                      Get.back();
+                      SnackbarHelper.showInfo('Camera settings coming soon');
+                    },
+                  ),
+                  _buildSettingsItem(
+                    Get.context!,
+                    icon: Icons.face,
+                    title: 'Face Recognition',
+                    onTap: () {
+                      Get.back();
+                      SnackbarHelper.showInfo(
+                        'Face recognition settings coming soon',
+                      );
+                    },
+                  ),
+                  _buildSettingsItem(
+                    Get.context!,
+                    icon: Icons.notifications_outlined,
+                    title: 'Notifications',
+                    onTap: () {
+                      Get.back();
+                      SnackbarHelper.showInfo(
+                        'Notification settings coming soon',
+                      );
+                    },
+                  ),
+
+                  SizedBox(
+                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
+                  ),
+
+                  // Close button
+                  SizedBox(
+                    width: double.infinity,
+                    height: ScaleResponsiveHelper.scale(Get.context!, 48),
+                    child: ElevatedButton(
+                      onPressed: () => Get.back(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColor.kPrimaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            ScaleResponsiveHelper.getBorderRadius(
+                              Get.context!,
+                              8,
+                            ),
+                          ),
+                        ),
+                        elevation: ScaleResponsiveHelper.scale(Get.context!, 2),
+                      ),
+                      child: Text(
+                        'Close',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: ScaleResponsiveHelper.getFontSize(
+                            Get.context!,
+                            14,
+                          ),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-
-              // Settings options
-              ListTile(
-                leading: Icon(Icons.camera_alt),
-                title: Text('Camera Settings'),
-                trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  Get.back();
-                  SnackbarHelper.showInfo('Camera settings coming soon');
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.face),
-                title: Text('Face Recognition'),
-                trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {
-                  Get.back();
-                  SnackbarHelper.showInfo(
-                    'Face recognition settings coming soon',
-                  );
-                },
-              ),
-
-              SizedBox(height: 10),
-
-              // Close button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Get.back(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF26A69A),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text('Close', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildSettingsItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(
+        bottom: ScaleResponsiveHelper.getSpacing(context, 12),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(
+            ScaleResponsiveHelper.getBorderRadius(context, 8),
+          ),
+          child: Container(
+            padding: ScaleResponsiveHelper.getAllPadding(context, 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(
+                ScaleResponsiveHelper.getBorderRadius(context, 8),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: ScaleResponsiveHelper.getIconSize(context, 20),
+                  color: AppColor.kTextSecondary,
+                ),
+                SizedBox(width: ScaleResponsiveHelper.getSpacing(context, 16)),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: ScaleResponsiveHelper.getFontSize(context, 14),
+                      color: AppColor.kTextPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: ScaleResponsiveHelper.getIconSize(context, 16),
+                  color: AppColor.kTextSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Scale Responsive Logout Confirmation Dialog
   void showLogoutConfirmation() {
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.logout,
-                      color: Colors.red.shade600,
-                      size: 20,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Logout Confirmation',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-
-              Text(
-                'Are you sure you want to logout from the attendance system?',
-                style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-              ),
-
-              SizedBox(height: 20),
-
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Get.back(),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
+          ),
+        ),
+        child: Container(
+          width: ScaleResponsiveHelper.scaleWidth(Get.context!, 350),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(Get.context!).size.width * 0.9,
+          ),
+          child: Padding(
+            padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: ScaleResponsiveHelper.getAllPadding(
+                        Get.context!,
+                        8,
                       ),
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.red.shade400, Colors.red.shade600],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
                       ),
-                      child: TextButton(
-                        onPressed: () async {
-                          Get.back(); // Close dialog
-                          await _authService.logout();
-                          SnackbarHelper.showSuccess('Logged out successfully');
-                          Get.offAllNamed(Routes.LOGIN);
-                        },
-                        child: Text(
-                          'Logout',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                      child: Icon(
+                        Icons.logout,
+                        color: Colors.red.shade600,
+                        size: ScaleResponsiveHelper.getIconSize(
+                          Get.context!,
+                          20,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: ScaleResponsiveHelper.getSpacing(Get.context!, 12),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Logout Confirmation',
+                        style: GoogleFonts.poppins(
+                          fontSize: ScaleResponsiveHelper.getFontSize(
+                            Get.context!,
+                            18,
+                          ),
+                          fontWeight: FontWeight.bold,
+                          color: AppColor.kTextPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
+                ),
+
+                Text(
+                  'Are you sure you want to logout from the attendance system?',
+                  style: GoogleFonts.poppins(
+                    fontSize: ScaleResponsiveHelper.getFontSize(
+                      Get.context!,
+                      14,
+                    ),
+                    color: AppColor.kTextSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                SizedBox(
+                  height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
+                ),
+
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: ScaleResponsiveHelper.scale(Get.context!, 48),
+                        child: TextButton(
+                          onPressed: () => Get.back(),
+                          style: TextButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                ScaleResponsiveHelper.getBorderRadius(
+                                  Get.context!,
+                                  8,
+                                ),
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: GoogleFonts.poppins(
+                              color: AppColor.kTextSecondary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: ScaleResponsiveHelper.getFontSize(
+                                Get.context!,
+                                14,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    SizedBox(
+                      width: ScaleResponsiveHelper.getSpacing(Get.context!, 10),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: ScaleResponsiveHelper.scale(Get.context!, 48),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.red.shade400, Colors.red.shade600],
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            ScaleResponsiveHelper.getBorderRadius(
+                              Get.context!,
+                              8,
+                            ),
+                          ),
+                        ),
+                        child: TextButton(
+                          onPressed: () async {
+                            Get.back(); // Close dialog
+                            await _authService.logout();
+                            SnackbarHelper.showSuccess(
+                              'Logged out successfully',
+                            );
+                            Get.offAllNamed(Routes.LOGIN);
+                          },
+                          style: TextButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                ScaleResponsiveHelper.getBorderRadius(
+                                  Get.context!,
+                                  8,
+                                ),
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Logout',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: ScaleResponsiveHelper.getFontSize(
+                                Get.context!,
+                                14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -473,7 +748,7 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
 
   // Getters for user data
   String get userName => _authService.currentUser.value?.name ?? 'User';
-  // Di HomeController:
+
   String get companyName {
     final employeeService = Get.find<EmployeeService>();
 
@@ -484,7 +759,7 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
     return 'Company';
   }
 
-  String get userInitials =>
+  String get companyInitials =>
       _authService.currentUser.value?.name
           .split(' ')
           .take(2)

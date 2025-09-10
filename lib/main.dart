@@ -9,7 +9,7 @@ import 'data/services/employee_service.dart';
 import 'data/services/location_service.dart';
 import 'infrastructure/navigation/navigation.dart';
 import 'infrastructure/navigation/routes.dart';
-import 'theme/app_theme.dart';
+import 'utils/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
