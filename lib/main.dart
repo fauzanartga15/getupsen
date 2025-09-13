@@ -1,4 +1,5 @@
 // File: lib/main.dart (Updated)
+import 'package:edge_to_edge/edge_to_edge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -30,6 +31,18 @@ void main() async {
   await Future.delayed(Duration(milliseconds: 100));
 
   var initialRoute = await Routes.initialRoute;
+
+  // peringatan Androiid 15 keatas
+  EdgeToEdge.configure(
+    statusBarColor: Colors.transparent, // set color of status bar
+    navigationBarColor: Colors.black, // set color of navigation bar
+    statusBarIconBrightness: Brightness.dark, // set iocn color of status bar
+    navigationBarIconBrightness:
+        Brightness.dark, // set icon color of navigation bar
+    enableTop: true, //for manage status bar
+    enableBottom:
+        true, // for manage navigation bar (only when 3 button navbar enabled)
+  );
 
   runApp(Main(initialRoute));
 }

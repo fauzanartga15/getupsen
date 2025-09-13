@@ -235,6 +235,8 @@ class HomeScreen extends GetView<HomeController> {
     final avatarSize = ScaleResponsiveHelper.getIconSize(context, 80);
     final avatarRadius = ScaleResponsiveHelper.getBorderRadius(context, 20);
     final initialsSize = ScaleResponsiveHelper.getFontSize(context, 24);
+    var logoDemo =
+        'https://media.istockphoto.com/id/1216157391/id/vektor/desain-logo-huruf-abstrak-e.jpg?s=612x612&w=0&k=20&c=8pnn3QjF5AmHNJ6GqetPeS4uCaGCNFIg-UnAU6hPPRA=';
 
     return Column(
       children: [
@@ -262,17 +264,37 @@ class HomeScreen extends GetView<HomeController> {
                   ),
                 ],
               ),
-
               child: Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    "https://media.istockphoto.com/id/1216157391/id/vektor/desain-logo-huruf-abstrak-e.jpg?s=612x612&w=0&k=20&c=8pnn3QjF5AmHNJ6GqetPeS4uCaGCNFIg-UnAU6hPPRA=",
-                    width: initialsSize * 2,
-                    height: initialsSize * 2,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                child:
+                    logoDemo
+                        .isNotEmpty //nanti ganti lofo dari API
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.network(
+                          logoDemo,
+                          width: initialsSize * 2,
+                          height: initialsSize * 2,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Container(
+                        width: initialsSize * 2,
+                        height: initialsSize * 2,
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            controller.companyInitials,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: initialsSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
               ),
             );
           },

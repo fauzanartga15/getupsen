@@ -1,23 +1,25 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-<!-- ✅ Permission -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ✅ Permission -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-    <!-- Kalau butuh background location -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- Hati-hati: deprecated mulai Android 11 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     
+    <!-- Hapus AD_ID yang ditambahkan otomatis oleh library -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+
     <application
-        android:label="upsen entrance"
+        android:label="Upsen Entrance"
         android:name="${applicationName}"
+         android:enableOnBackInvokedCallback="true" 
         android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
