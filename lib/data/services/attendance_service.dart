@@ -1,5 +1,6 @@
 // File: lib/data/services/attendance_service.dart (Key parts - enhanced)
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../../infrastructure/navigation/routes.dart';
@@ -20,10 +21,10 @@ class AttendanceService extends GetxService {
       final baseUrl = config['url']!;
 
       final authToken = _authService.authToken.value;
-      print("🔑 Auth token valid: ${authToken.isNotEmpty}");
+      if (kDebugMode) print("🔑 Auth token valid: ${authToken.isNotEmpty}");
 
       if (authToken.isEmpty) {
-        print("❌ Auth token is empty!");
+        if (kDebugMode) print("❌ Auth token is empty!");
         return null;
       }
 
@@ -36,58 +37,65 @@ class AttendanceService extends GetxService {
         },
       );
 
-      print("📊 User status API Response:");
-      print("   URL: ${baseUrl}tablet/user-status/$userId");
-      print("   Status Code: ${response.statusCode}");
-      print("   Response Body: ${response.body}");
+      if (kDebugMode) print("📊 User status API Response:");
+      if (kDebugMode) print("   URL: ${baseUrl}tablet/user-status/$userId");
+      if (kDebugMode) print("   Status Code: ${response.statusCode}");
+      if (kDebugMode) print("   Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         // Enhanced debugging
-        print("🔍 Decoded JSON structure:");
-        print("   Root keys: ${data.keys.toList()}");
-        print("   Status: ${data['status']}");
+        if (kDebugMode) print("🔍 Decoded JSON structure:");
+        if (kDebugMode) print("   Root keys: ${data.keys.toList()}");
+        if (kDebugMode) print("   Status: ${data['status']}");
 
         if (data['status'] == 'success' && data['data'] != null) {
           final statusData = data['data'];
 
-          print("🔍 Status data structure:");
-          print("   Keys: ${statusData.keys.toList()}");
-          print(
-            "   can_checkin: ${statusData['can_checkin']} (${statusData['can_checkin'].runtimeType})",
-          );
-          print(
-            "   can_checkout: ${statusData['can_checkout']} (${statusData['can_checkout'].runtimeType})",
-          );
-          print("   last_action: ${statusData['last_action']}");
-          print("   last_action_time: ${statusData['last_action_time']}");
+          if (kDebugMode) print("🔍 Status data structure:");
+          if (kDebugMode) print("   Keys: ${statusData.keys.toList()}");
+          if (kDebugMode)
+            print(
+              "   can_checkin: ${statusData['can_checkin']} (${statusData['can_checkin'].runtimeType})",
+            );
+          if (kDebugMode)
+            print(
+              "   can_checkout: ${statusData['can_checkout']} (${statusData['can_checkout'].runtimeType})",
+            );
+          if (kDebugMode) print("   last_action: ${statusData['last_action']}");
+          if (kDebugMode)
+            print("   last_action_time: ${statusData['last_action_time']}");
 
           final userStatus = UserAttendanceStatus.fromJson(statusData);
 
-          print("✅ UserAttendanceStatus created:");
-          print("   canCheckin: ${userStatus.canCheckin}");
-          print("   canCheckout: ${userStatus.canCheckout}");
-          print("   canPerformAttendance: ${userStatus.canPerformAttendance}");
-          print("   nextAction: ${userStatus.nextAction}");
+          if (kDebugMode) print("✅ UserAttendanceStatus created:");
+          if (kDebugMode) print("   canCheckin: ${userStatus.canCheckin}");
+          if (kDebugMode) print("   canCheckout: ${userStatus.canCheckout}");
+          if (kDebugMode)
+            print(
+              "   canPerformAttendance: ${userStatus.canPerformAttendance}",
+            );
+          if (kDebugMode) print("   nextAction: ${userStatus.nextAction}");
 
           return userStatus;
         } else {
-          print("❌ Invalid response structure or status");
+          if (kDebugMode) print("❌ Invalid response structure or status");
           return null;
         }
       } else if (response.statusCode == 401) {
-        print("❌ Token expired or invalid - need to re-login");
+        if (kDebugMode) print("❌ Token expired or invalid - need to re-login");
         _authService.logout();
         Get.offAllNamed(Routes.LOGIN);
         return null;
       }
 
-      print("❌ Failed to get user status - Status: ${response.statusCode}");
+      if (kDebugMode)
+        print("❌ Failed to get user status - Status: ${response.statusCode}");
       return null;
     } catch (e, stackTrace) {
-      print("❌ Error getting user status: $e");
-      print("❌ Stack trace: $stackTrace");
+      if (kDebugMode) print("❌ Error getting user status: $e");
+      if (kDebugMode) print("❌ Stack trace: $stackTrace");
       return null;
     }
   }
@@ -115,21 +123,24 @@ class AttendanceService extends GetxService {
             '${jakartaTime.hour.toString().padLeft(2, '0')}:${jakartaTime.minute.toString().padLeft(2, '0')}:${jakartaTime.second.toString().padLeft(2, '0')}',
       };
 
-      print("📤 Check-in Request:");
-      print("   URL: ${baseUrl}checkin-public");
-      print("   User ID: $userId");
-      print("   Date: ${body['date']}");
-      print("   Time In: ${body['time_in']}");
-      print("   Full Body: ${jsonEncode(body)}");
+      if (kDebugMode) print("📤 Check-in Request:");
+      if (kDebugMode) print("   URL: ${baseUrl}checkin-public");
+      if (kDebugMode) print("   User ID: $userId");
+      if (kDebugMode) print("   Date: ${body['date']}");
+      if (kDebugMode) print("   Time In: ${body['time_in']}");
+      if (kDebugMode) print("   Full Body: ${jsonEncode(body)}");
 
       // 4. Add location if available
       if (position != null) {
         body['latlon_in'] = "${position.latitude}, ${position.longitude}";
 
         // body['accuracy'] = position.accuracy; // Optional: tambahan info akurasi
-        print("📍 Location added: ${position.latitude}, ${position.longitude}");
+        if (kDebugMode)
+          print(
+            "📍 Location added: ${position.latitude}, ${position.longitude}",
+          );
       } else {
-        print("⚠️ No location data available for check-in");
+        if (kDebugMode) print("⚠️ No location data available for check-in");
         // Optional: bisa return error atau lanjut tanpa lokasi
       }
 
@@ -143,18 +154,18 @@ class AttendanceService extends GetxService {
         body: jsonEncode(body),
       );
 
-      print("📥 Check-in Response:");
-      print("   Status Code: ${response.statusCode}");
-      print("   Response Body: ${response.body}");
+      if (kDebugMode) print("📥 Check-in Response:");
+      if (kDebugMode) print("   Status Code: ${response.statusCode}");
+      if (kDebugMode) print("   Response Body: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final result = AttendanceResult.fromJson(data);
 
-        print("✅ Check-in successful:");
-        print("   Status: ${result.status}");
-        print("   Message: ${result.message}");
-        print("   Title: ${result.title}");
+        if (kDebugMode) print("✅ Check-in successful:");
+        if (kDebugMode) print("   Status: ${result.status}");
+        if (kDebugMode) print("   Message: ${result.message}");
+        if (kDebugMode) print("   Title: ${result.title}");
 
         return result;
       } else if (response.statusCode == 400) {
@@ -162,14 +173,15 @@ class AttendanceService extends GetxService {
         final data = jsonDecode(response.body);
         final result = AttendanceResult.fromJson(data);
 
-        print("⚠️ Check-in returned 400:");
-        print("   Message: ${result.message}");
+        if (kDebugMode) print("⚠️ Check-in returned 400:");
+        if (kDebugMode) print("   Message: ${result.message}");
 
         return result;
       } else {
-        print(
-          "❌ Check-in failed with unexpected status: ${response.statusCode}",
-        );
+        if (kDebugMode)
+          print(
+            "❌ Check-in failed with unexpected status: ${response.statusCode}",
+          );
         return AttendanceResult(
           status: false,
           message: 'Check-in failed: Server returned ${response.statusCode}',
@@ -179,8 +191,8 @@ class AttendanceService extends GetxService {
         );
       }
     } catch (e, stackTrace) {
-      print("❌ Exception during check-in: $e");
-      print("❌ Stack trace: $stackTrace");
+      if (kDebugMode) print("❌ Exception during check-in: $e");
+      if (kDebugMode) print("❌ Stack trace: $stackTrace");
       return AttendanceResult(
         status: false,
         message: 'Check-in failed: ${e.toString()}',
@@ -212,20 +224,23 @@ class AttendanceService extends GetxService {
             '${jakartaTime.hour.toString().padLeft(2, '0')}:${jakartaTime.minute.toString().padLeft(2, '0')}:${jakartaTime.second.toString().padLeft(2, '0')}',
       };
 
-      print("📤 Check-out Request:");
-      print("   URL: ${baseUrl}checkout-public");
-      print("   User ID: $userId");
-      print("   Date: ${body['date']}");
-      print("   Time Out: ${body['time_out']}");
+      if (kDebugMode) print("📤 Check-out Request:");
+      if (kDebugMode) print("   URL: ${baseUrl}checkout-public");
+      if (kDebugMode) print("   User ID: $userId");
+      if (kDebugMode) print("   Date: ${body['date']}");
+      if (kDebugMode) print("   Time Out: ${body['time_out']}");
 
       //Add location if available
       if (position != null) {
         body['latlon_out'] = "${position.latitude}, ${position.longitude}";
 
         // body['accuracy'] = position.accuracy;
-        print("📍 Location added: ${position.latitude}, ${position.longitude}");
+        if (kDebugMode)
+          print(
+            "📍 Location added: ${position.latitude}, ${position.longitude}",
+          );
       } else {
-        print("⚠️ No location data available for check-out");
+        if (kDebugMode) print("⚠️ No location data available for check-out");
       }
 
       final response = await http.post(
@@ -238,24 +253,25 @@ class AttendanceService extends GetxService {
         body: jsonEncode(body),
       );
 
-      print("📥 Check-out Response:");
-      print("   Status Code: ${response.statusCode}");
-      print("   Response Body: ${response.body}");
+      if (kDebugMode) print("📥 Check-out Response:");
+      if (kDebugMode) print("   Status Code: ${response.statusCode}");
+      if (kDebugMode) print("   Response Body: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final result = AttendanceResult.fromJson(data);
 
-        print("✅ Check-out successful");
+        if (kDebugMode) print("✅ Check-out successful");
         return result;
       } else if (response.statusCode == 400) {
         final data = jsonDecode(response.body);
         final result = AttendanceResult.fromJson(data);
 
-        print("⚠️ Check-out returned 400: ${result.message}");
+        if (kDebugMode) print("⚠️ Check-out returned 400: ${result.message}");
         return result;
       } else {
-        print("❌ Check-out failed with status: ${response.statusCode}");
+        if (kDebugMode)
+          print("❌ Check-out failed with status: ${response.statusCode}");
         return AttendanceResult(
           status: false,
           message: 'Check-out failed: Server returned ${response.statusCode}',
@@ -265,8 +281,8 @@ class AttendanceService extends GetxService {
         );
       }
     } catch (e, stackTrace) {
-      print("❌ Exception during check-out: $e");
-      print("❌ Stack trace: $stackTrace");
+      if (kDebugMode) print("❌ Exception during check-out: $e");
+      if (kDebugMode) print("❌ Stack trace: $stackTrace");
       return AttendanceResult(
         status: false,
         message: 'Check-out failed: ${e.toString()}',

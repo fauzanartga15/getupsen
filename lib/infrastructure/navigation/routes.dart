@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../data/services/auth_service.dart';
@@ -12,10 +13,10 @@ class Routes {
 
     // Check if user is logged in
     if (authService.isLoggedIn.value) {
-      print("🏠 User logged in - redirecting to HOME");
+      if (kDebugMode) print("🏠 User logged in - redirecting to HOME");
       return HOME;
     } else {
-      print("🔐 User not logged in - redirecting to LOGIN");
+      if (kDebugMode) print("🔐 User not logged in - redirecting to LOGIN");
       return LOGIN;
     }
   }

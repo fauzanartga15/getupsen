@@ -1,4 +1,5 @@
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -24,21 +25,21 @@ class CameraService {
   // Initialize front camera only
   Future<bool> initializeFrontCamera() async {
     try {
-      print("🎥 Initializing front camera only...");
+      if (kDebugMode) print("🎥 Initializing front camera only...");
 
       // Request camera permission
       final hasPermission = await _requestCameraPermission();
       if (!hasPermission) {
-        print("❌ Camera permission denied");
+        if (kDebugMode) print("❌ Camera permission denied");
         return false;
       }
 
       // Get available cameras
       _cameras = await availableCameras();
-      print("📷 Found ${_cameras.length} cameras");
+      if (kDebugMode) print("📷 Found ${_cameras.length} cameras");
 
       if (_cameras.isEmpty) {
-        print("❌ No cameras found");
+        if (kDebugMode) print("❌ No cameras found");
         return false;
       }
 
@@ -49,7 +50,7 @@ class CameraService {
 
       // If no front camera, fail
       if (_currentCameraIndex == -1) {
-        print("❌ No front camera found");
+        if (kDebugMode) print("❌ No front camera found");
         return false;
       }
 
@@ -59,10 +60,10 @@ class CameraService {
       await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
 
       _isInitialized = true;
-      print("✅ Front camera initialized successfully");
+      if (kDebugMode) print("✅ Front camera initialized successfully");
       return true;
     } catch (e) {
-      print("❌ Error initializing front camera: $e");
+      if (kDebugMode) print("❌ Error initializing front camera: $e");
       return false;
     }
   }
@@ -70,21 +71,21 @@ class CameraService {
   // Initialize camera service
   Future<bool> initialize() async {
     try {
-      print("🎥 Initializing camera service...");
+      if (kDebugMode) print("🎥 Initializing camera service...");
 
       // Request camera permission
       final hasPermission = await _requestCameraPermission();
       if (!hasPermission) {
-        print("❌ Camera permission denied");
+        if (kDebugMode) print("❌ Camera permission denied");
         return false;
       }
 
       // Get available cameras
       _cameras = await availableCameras();
-      print("📷 Found ${_cameras.length} cameras");
+      if (kDebugMode) print("📷 Found ${_cameras.length} cameras");
 
       if (_cameras.isEmpty) {
-        print("❌ No cameras found");
+        if (kDebugMode) print("❌ No cameras found");
         return false;
       }
 
@@ -102,10 +103,10 @@ class CameraService {
       await _initializeController();
 
       _isInitialized = true;
-      print("✅ Camera service initialized successfully");
+      if (kDebugMode) print("✅ Camera service initialized successfully");
       return true;
     } catch (e) {
-      print("❌ Error initializing camera: $e");
+      if (kDebugMode) print("❌ Error initializing camera: $e");
       return false;
     }
   }
@@ -128,16 +129,19 @@ class CameraService {
 
       final size = _controller!.value.previewSize;
       final aspectRatio = _controller!.value.aspectRatio;
-      print("📷 Camera initialized:");
-      print("   Size: ${size?.width}x${size?.height}");
-      print("   Aspect Ratio: ${aspectRatio.toStringAsFixed(2)}");
-      print(
-        "   Expected ratios: 4:3=${(4 / 3).toStringAsFixed(2)}, 16:9=${(16 / 9).toStringAsFixed(2)}",
-      );
+      if (kDebugMode) print("📷 Camera initialized:");
+      if (kDebugMode) print("   Size: ${size?.width}x${size?.height}");
+      if (kDebugMode)
+        print("   Aspect Ratio: ${aspectRatio.toStringAsFixed(2)}");
+      if (kDebugMode)
+        print(
+          "   Expected ratios: 4:3=${(4 / 3).toStringAsFixed(2)}, 16:9=${(16 / 9).toStringAsFixed(2)}",
+        );
 
-      print("✅ Camera controller initialized: ${currentCamera?.name}");
+      if (kDebugMode)
+        print("✅ Camera controller initialized: ${currentCamera?.name}");
     } catch (e) {
-      print("❌ Error initializing camera controller: $e");
+      if (kDebugMode) print("❌ Error initializing camera controller: $e");
       rethrow;
     }
   }
@@ -145,7 +149,7 @@ class CameraService {
   //Set specific resolution
   Future<bool> setResolution(ResolutionPreset preset) async {
     try {
-      print("🔧 Setting resolution to: $preset");
+      if (kDebugMode) print("🔧 Setting resolution to: $preset");
 
       // Store current preset
       final currentPreset = preset;
@@ -163,39 +167,44 @@ class CameraService {
       await _controller!.initialize();
 
       final size = _controller!.value.previewSize;
-      print("✅ New resolution: ${size?.width}x${size?.height}");
+      if (kDebugMode) print("✅ New resolution: ${size?.width}x${size?.height}");
       return true;
     } catch (e) {
-      print("❌ Error setting resolution: $e");
+      if (kDebugMode) print("❌ Error setting resolution: $e");
       return false;
     }
   }
 
   // Switch between front and back camera
   Future<bool> switchCamera() async {
-    print("========== DEBUG_CAMERA_SWITCH START ==========");
-    print("DEBUG_CAMERA_SWITCH: Method called!");
+    if (kDebugMode) print("========== DEBUG_CAMERA_SWITCH START ==========");
+    if (kDebugMode) print("DEBUG_CAMERA_SWITCH: Method called!");
 
     if (_cameras.length < 2) {
-      print("DEBUG_CAMERA_SWITCH: Only ${_cameras.length} camera(s)");
+      if (kDebugMode)
+        print("DEBUG_CAMERA_SWITCH: Only ${_cameras.length} camera(s)");
       return false;
     }
 
     try {
-      print("DEBUG_CAMERA_SWITCH: Current index: $_currentCameraIndex");
-      print("DEBUG_CAMERA_SWITCH: Current camera: ${currentCamera?.name}");
+      if (kDebugMode)
+        print("DEBUG_CAMERA_SWITCH: Current index: $_currentCameraIndex");
+      if (kDebugMode)
+        print("DEBUG_CAMERA_SWITCH: Current camera: ${currentCamera?.name}");
 
       // Simple switch logic
       _currentCameraIndex = (_currentCameraIndex + 1) % _cameras.length;
 
-      print("DEBUG_CAMERA_SWITCH: New index: $_currentCameraIndex");
-      print("DEBUG_CAMERA_SWITCH: New camera: ${currentCamera?.name}");
+      if (kDebugMode)
+        print("DEBUG_CAMERA_SWITCH: New index: $_currentCameraIndex");
+      if (kDebugMode)
+        print("DEBUG_CAMERA_SWITCH: New camera: ${currentCamera?.name}");
 
       await _initializeController();
-      print("DEBUG_CAMERA_SWITCH: SUCCESS!");
+      if (kDebugMode) print("DEBUG_CAMERA_SWITCH: SUCCESS!");
       return true;
     } catch (e) {
-      print("DEBUG_CAMERA_SWITCH: ERROR - $e");
+      if (kDebugMode) print("DEBUG_CAMERA_SWITCH: ERROR - $e");
       return false;
     }
   }
@@ -206,7 +215,7 @@ class CameraService {
       final status = await Permission.camera.request();
       return status.isGranted;
     } catch (e) {
-      print("❌ Error requesting camera permission: $e");
+      if (kDebugMode) print("❌ Error requesting camera permission: $e");
       return false;
     }
   }
@@ -240,9 +249,9 @@ class CameraService {
       await _controller?.dispose();
       _controller = null;
       _isInitialized = false;
-      print("🗑️ Camera service disposed");
+      if (kDebugMode) print("🗑️ Camera service disposed");
     } catch (e) {
-      print("❌ Error disposing camera service: $e");
+      if (kDebugMode) print("❌ Error disposing camera service: $e");
     }
   }
 }

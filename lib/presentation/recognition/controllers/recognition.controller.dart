@@ -5,9 +5,9 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
+import 'package:upsen_entrance/data/services/dialog_service.dart';
 
 import '../../../data/models/attendance_result_model.dart';
 import '../../../data/models/employee_model.dart';
@@ -16,7 +16,7 @@ import '../../../data/services/camera_service.dart';
 import '../../../data/services/employee_service.dart';
 import '../../../data/services/face_recognition_service.dart';
 import '../../../infrastructure/navigation/routes.dart';
-import '../../../utils/helpers/responsive_helper.dart';
+import '../../../utils/dialog_utils.dart';
 import '../../../utils/helpers/snackbar_helper.dart';
 
 class RecognitionController extends GetxController {
@@ -42,8 +42,6 @@ class RecognitionController extends GetxController {
 
   // Camera info
   var cameraInfo = ''.obs;
-  var isBackCamera =
-      false.obs; // TETAP ADA - tapi selalu false (front camera only)
 
   // Face recognition control
   var isRecognitionEnabled = true.obs;
@@ -67,7 +65,9 @@ class RecognitionController extends GetxController {
   static const int attendanceCooldown = 30; // 30 second cooldown
   Map<int, DateTime> lastAttendanceTime =
       {}; // Track last attendance per employee
-  bool isProcessingAttendance = false; // Prevent multiple simultane
+
+  //loading
+  bool isProcessingAttendance = false;
 
   //reactive countdown
   Timer? _detectionTimer;
@@ -101,46 +101,33 @@ class RecognitionController extends GetxController {
 
   Future<void> _initializeFaceRecognitionService() async {
     try {
-      print("Loading face recognition model...");
-      final success = await _faceRecognitionService.loadModel();
-
-      if (success) {
-        print("Face recognition model loaded successfully");
-      } else {
-        print("Face recognition model failed to load");
-      }
+      await _faceRecognitionService.loadModel();
     } catch (e) {
-      print("Error loading face recognition model: $e");
+      // Handle error silently atau log ke service logging
+      errorMessage('Failed to load face recognition model');
     }
   }
 
   Future<void> _initializeCamera() async {
     try {
-      errorMessage('');
-      print("Starting camera initialization...");
-
       // Initialize front camera only
       final success = await _cameraService.initializeFrontCamera();
       if (success) {
         isInitialized(true);
         _updateCameraInfo();
         _startDetection();
-        print("Front camera initialized successfully");
       } else {
         errorMessage('Failed to initialize front camera');
-        print("Front camera initialization failed");
       }
     } catch (e) {
       final error = 'Camera error: ${e.toString()}';
       errorMessage(error);
-      print("Camera initialization error: $e");
       _showCameraErrorDialog(error);
     }
   }
 
   void _updateCameraInfo() {
     cameraInfo(_cameraService.getCameraInfo());
-    isBackCamera(false); // Always false - front camera only
   }
 
   void _startDetection() {
@@ -180,7 +167,6 @@ class RecognitionController extends GetxController {
           _faceRecognitionService.isModelLoaded &&
           employeeService.employeesWithEmbedding.isNotEmpty) {
         await _recognizeAllEmployeeFaces(imageFile.path, detectedFaces);
-        _testSimilarityFlow(); //for testing, delete soon if clear
       }
 
       // Cleanup
@@ -364,13 +350,6 @@ class RecognitionController extends GetxController {
     }
   }
 
-  // DUMMY switch camera method (tidak melakukan apa-apa karena hanya front camera)
-  Future<void> switchCamera() async {
-    // Do nothing - only front camera available
-    print("Switch camera disabled - front camera only");
-    SnackbarHelper.showInfo('Only front camera is available');
-  }
-
   void _triggerAutoAttendance(EmployeeModel employee) {
     if (!isAutoAttendanceEnabled.value) return;
     if (_autoAttendanceTimer != null) return; // Prevent multiple triggers
@@ -406,7 +385,7 @@ class RecognitionController extends GetxController {
 
     print("🕐 Auto-attendance triggered for: ${employee.name}");
 
-    // 🔧 FIX: Find and store the correct confidence for this employee
+    // Find and store the correct confidence for this employee
     currentEmployeeConfidence = null;
     for (int i = 0; i < recognizedEmployees.length; i++) {
       if (recognizedEmployees[i]?.id == employee.id) {
@@ -429,15 +408,6 @@ class RecognitionController extends GetxController {
     });
   }
 
-  // NEW: Stop detection completely (no restart)
-  void _stopDetectionCompletely() {
-    _detectionTimer?.cancel();
-    _detectionTimer = null;
-    isDetecting(false);
-    _isProcessingFrame = false; // Also stop frame processing
-    print("🛑 Face detection stopped completely for attendance");
-  }
-
   Future<void> _processAutoAttendance() async {
     final employee = pendingEmployee;
 
@@ -451,9 +421,8 @@ class RecognitionController extends GetxController {
     isProcessingAttendance = true;
 
     try {
-      print(
-        "🤖 Processing auto-attendance for: ${employee.name} (ID: ${employee.id})",
-      );
+      // Tampilkan loading dialog
+      dialog.showLoading();
 
       // Stop detection completely
       _stopDetectionCompletely();
@@ -462,16 +431,10 @@ class RecognitionController extends GetxController {
       final userStatus = await _attendanceService.getUserStatus(employee.id);
 
       if (userStatus == null) {
-        print("❌ Failed to get user status");
         SnackbarHelper.showError('Failed to get user status');
         _restartDetectionWithDelay();
         return;
       }
-
-      print(
-        "✅ User status: canCheckin=${userStatus.canCheckin}, canCheckout=${userStatus.canCheckout}",
-      );
-      print("   → Will perform ${userStatus.nextAction}");
 
       // Check if no action available
       if (!userStatus.canPerformAttendance) {
@@ -544,15 +507,22 @@ class RecognitionController extends GetxController {
         SnackbarHelper.showError('Attendance request failed');
         _restartDetectionWithDelay();
       }
-    } catch (e, stackTrace) {
-      print("❌ Error processing auto-attendance: $e");
-      print("❌ Stack trace: $stackTrace");
+    } catch (e) {
       SnackbarHelper.showError('Attendance process failed: ${e.toString()}');
       _restartDetectionWithDelay();
     } finally {
       pendingEmployee = null;
       isProcessingAttendance = false; // Release lock
     }
+  }
+
+  // NEW: Stop detection completely (no restart)
+  void _stopDetectionCompletely() {
+    _detectionTimer?.cancel();
+    _detectionTimer = null;
+    isDetecting(false);
+    _isProcessingFrame = false; // Also stop frame processing
+    print("🛑 Face detection stopped completely for attendance");
   }
 
   //Restart detection with delay to prevent immediate re-trigger
@@ -568,615 +538,17 @@ class RecognitionController extends GetxController {
   }
 
   void _showAlreadyCompletedDialog(EmployeeModel employee) {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
-          ),
-        ),
-        child: Container(
-          width: ScaleResponsiveHelper.scaleWidth(Get.context!, 350),
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(Get.context!).size.width * 0.9,
-          ),
-          padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.orange.shade50, Colors.orange.shade100],
-            ),
-            borderRadius: BorderRadius.circular(
-              ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Employee avatar
-              Container(
-                width: ScaleResponsiveHelper.scale(Get.context!, 80),
-                height: ScaleResponsiveHelper.scale(Get.context!, 80),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.orange, Colors.deepOrange],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    employee.name.split(' ').take(2).map((e) => e[0]).join(),
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: ScaleResponsiveHelper.getFontSize(
-                        Get.context!,
-                        24,
-                      ),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-              ),
-
-              Text(
-                'Attendance Complete',
-                style: GoogleFonts.poppins(
-                  fontSize: ScaleResponsiveHelper.getFontSize(Get.context!, 18),
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade800,
-                ),
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 8),
-              ),
-
-              Text(
-                '${employee.name}\n${employee.departmentName}',
-                style: GoogleFonts.poppins(
-                  fontSize: ScaleResponsiveHelper.getFontSize(Get.context!, 14),
-                  color: Colors.orange.shade700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-              ),
-
-              // Message container
-              Container(
-                padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(
-                    ScaleResponsiveHelper.getBorderRadius(Get.context!, 8),
-                  ),
-                ),
-                child: Text(
-                  'You have already completed attendance for today',
-                  style: GoogleFonts.poppins(
-                    fontSize: ScaleResponsiveHelper.getFontSize(
-                      Get.context!,
-                      12,
-                    ),
-                    color: Colors.orange.shade800,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
-              ),
-
-              // Back button
-              SizedBox(
-                width: double.infinity,
-                height: ScaleResponsiveHelper.scale(Get.context!, 48),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Get.back();
-                    Get.offAndToNamed(Routes.HOME);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        ScaleResponsiveHelper.getBorderRadius(Get.context!, 8),
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    'Back to Home',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: ScaleResponsiveHelper.getFontSize(
-                        Get.context!,
-                        14,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: false,
+    dialog.showAlreadyCompleted(
+      employee: employee,
+      onBackToHome: () => Get.offAndToNamed(Routes.HOME),
+      onRestartDetection: () => _restartDetectionWithDelay(),
     );
-
-    // Auto close and redirect after 5 seconds
-    Timer(Duration(seconds: 5), () {
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-        _restartDetectionWithDelay();
-      }
-    });
   }
 
   void _showCameraErrorDialog(String errorMessage) {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
-          ),
-        ),
-        child: Container(
-          width: ScaleResponsiveHelper.scaleWidth(Get.context!, 350),
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(Get.context!).size.width * 0.9,
-          ),
-          padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.red.shade50, Colors.red.shade100],
-            ),
-            borderRadius: BorderRadius.circular(
-              ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Error icon
-              Container(
-                width: ScaleResponsiveHelper.scale(Get.context!, 80),
-                height: ScaleResponsiveHelper.scale(Get.context!, 80),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.error_outline,
-                  color: Colors.white,
-                  size: ScaleResponsiveHelper.getIconSize(Get.context!, 40),
-                ),
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-              ),
-
-              Text(
-                'Camera Error',
-                style: GoogleFonts.poppins(
-                  fontSize: ScaleResponsiveHelper.getFontSize(Get.context!, 18),
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red.shade800,
-                ),
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 8),
-              ),
-
-              Text(
-                errorMessage,
-                style: GoogleFonts.poppins(
-                  fontSize: ScaleResponsiveHelper.getFontSize(Get.context!, 14),
-                  color: Colors.red.shade700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-              ),
-
-              // Suggestions container
-              Container(
-                padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(
-                    ScaleResponsiveHelper.getBorderRadius(Get.context!, 8),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Troubleshooting Tips:',
-                      style: GoogleFonts.poppins(
-                        fontSize: ScaleResponsiveHelper.getFontSize(
-                          Get.context!,
-                          12,
-                        ),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red.shade800,
-                      ),
-                    ),
-                    SizedBox(
-                      height: ScaleResponsiveHelper.getSpacing(Get.context!, 4),
-                    ),
-                    Text(
-                      '• Check camera permissions\n• Close other camera apps\n• Restart the application',
-                      style: GoogleFonts.poppins(
-                        fontSize: ScaleResponsiveHelper.getFontSize(
-                          Get.context!,
-                          11,
-                        ),
-                        color: Colors.red.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(
-                height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
-              ),
-
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: ScaleResponsiveHelper.scale(Get.context!, 48),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Get.back();
-                          onInit(); // Retry initialization
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              ScaleResponsiveHelper.getBorderRadius(
-                                Get.context!,
-                                8,
-                              ),
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          'Retry',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: ScaleResponsiveHelper.getFontSize(
-                              Get.context!,
-                              14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: false,
-    );
-  }
-
-  void showDebugInfo() {
-    final deviceInfo = ScaleResponsiveHelper.getDeviceInfo(Get.context!);
-
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            ScaleResponsiveHelper.getBorderRadius(Get.context!, 16),
-          ),
-        ),
-        child: Container(
-          width: ScaleResponsiveHelper.scaleWidth(Get.context!, 400),
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(Get.context!).size.width * 0.9,
-            maxHeight: MediaQuery.of(Get.context!).size.height * 0.8,
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.bug_report,
-                        color: Colors.blue,
-                        size: ScaleResponsiveHelper.getIconSize(
-                          Get.context!,
-                          24,
-                        ),
-                      ),
-                      SizedBox(
-                        width: ScaleResponsiveHelper.getSpacing(
-                          Get.context!,
-                          12,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Recognition Debug Info',
-                          style: GoogleFonts.poppins(
-                            fontSize: ScaleResponsiveHelper.getFontSize(
-                              Get.context!,
-                              18,
-                            ),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(
-                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
-                  ),
-
-                  // Device info section
-                  _buildDebugSection('Device Information', {
-                    'Device Type': deviceInfo['deviceType'],
-                    'Screen Size':
-                        '${deviceInfo['screenWidth'].toStringAsFixed(0)}x${deviceInfo['screenHeight'].toStringAsFixed(0)}',
-                    'Scale Factor': deviceInfo['scaleFactor'].toStringAsFixed(
-                      3,
-                    ),
-                    'Width Scale': deviceInfo['widthScale'].toStringAsFixed(3),
-                    'Height Scale': deviceInfo['heightScale'].toStringAsFixed(
-                      3,
-                    ),
-                    'Needs Scrolling': ScaleResponsiveHelper.needsScrolling(
-                      Get.context!,
-                    ).toString(),
-                  }),
-
-                  SizedBox(
-                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-                  ),
-
-                  // Camera info section
-                  _buildDebugSection('Camera Information', {
-                    'Initialized': isInitialized.value.toString(),
-                    'Detecting': isDetecting.value.toString(),
-                    'Recognition Enabled': isRecognitionEnabled.value
-                        .toString(),
-                    'Camera Info': cameraInfo.value,
-                    'Preview Size':
-                        '${previewSize.width.toStringAsFixed(0)}x${previewSize.height.toStringAsFixed(0)}',
-                    'Image Size':
-                        '${imageSize.width.toStringAsFixed(0)}x${imageSize.height.toStringAsFixed(0)}',
-                  }),
-
-                  SizedBox(
-                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-                  ),
-
-                  // Detection info section
-                  _buildDebugSection('Detection Statistics', {
-                    'Faces Detected': faces.length.toString(),
-                    'Recognition Stats': recognitionStats.value,
-                    'Detection Stats': detectionStats.value,
-                    'Selected Face': selectedFaceIndex.value >= 0
-                        ? selectedFaceIndex.value.toString()
-                        : 'None',
-                    'Show Attendance Button': showAttendanceButton.value
-                        .toString(),
-                  }),
-
-                  SizedBox(
-                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-                  ),
-
-                  // Employee info section
-                  _buildDebugSection('Employee Database', {
-                    'Total Employees': employeeService.employees.length
-                        .toString(),
-                    'With Embeddings': employeeService
-                        .employeesWithEmbedding
-                        .length
-                        .toString(),
-                    'Recognition Model Loaded': _faceRecognitionService
-                        .isModelLoaded
-                        .toString(),
-                    'Last Recognized':
-                        employeeService.lastRecognizedEmployee.value?.name ??
-                        'None',
-                    'Last Confidence': employeeService.employeeConfidence
-                        .toStringAsFixed(1),
-                  }),
-
-                  SizedBox(
-                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 16),
-                  ),
-
-                  // Auto-attendance info section
-                  _buildDebugSection('Auto-Attendance', {
-                    'Auto Enabled': isAutoAttendanceEnabled.value.toString(),
-                    'Countdown': autoAttendanceCountdown.value.toString(),
-                    'Pending Employee': pendingEmployee?.name ?? 'None',
-                    'Processing Attendance': isProcessingAttendance.toString(),
-                    'Active Cooldowns': lastAttendanceTime.length.toString(),
-                  }),
-
-                  SizedBox(
-                    height: ScaleResponsiveHelper.getSpacing(Get.context!, 20),
-                  ),
-
-                  // Action buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: ScaleResponsiveHelper.scale(Get.context!, 48),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              clearCooldown(null); // Clear all cooldowns
-                              SnackbarHelper.showSuccess(
-                                'All cooldowns cleared',
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  ScaleResponsiveHelper.getBorderRadius(
-                                    Get.context!,
-                                    8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              'Clear Cooldowns',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: ScaleResponsiveHelper.getFontSize(
-                                  Get.context!,
-                                  12,
-                                ),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: ScaleResponsiveHelper.getSpacing(
-                          Get.context!,
-                          10,
-                        ),
-                      ),
-                      Expanded(
-                        child: SizedBox(
-                          height: ScaleResponsiveHelper.scale(Get.context!, 48),
-                          child: ElevatedButton(
-                            onPressed: () => Get.back(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  ScaleResponsiveHelper.getBorderRadius(
-                                    Get.context!,
-                                    8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              'Close',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: ScaleResponsiveHelper.getFontSize(
-                                  Get.context!,
-                                  12,
-                                ),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDebugSection(String title, Map<String, String> data) {
-    return Container(
-      padding: ScaleResponsiveHelper.getAllPadding(Get.context!, 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(
-          ScaleResponsiveHelper.getBorderRadius(Get.context!, 8),
-        ),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: ScaleResponsiveHelper.getFontSize(Get.context!, 14),
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade800,
-            ),
-          ),
-          SizedBox(height: ScaleResponsiveHelper.getSpacing(Get.context!, 8)),
-          ...data.entries
-              .map(
-                (entry) => Padding(
-                  padding: EdgeInsets.symmetric(
-                    vertical: ScaleResponsiveHelper.getSpacing(Get.context!, 2),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: ScaleResponsiveHelper.scale(Get.context!, 120),
-                        child: Text(
-                          '${entry.key}:',
-                          style: GoogleFonts.poppins(
-                            fontSize: ScaleResponsiveHelper.getFontSize(
-                              Get.context!,
-                              11,
-                            ),
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          entry.value,
-                          style: GoogleFonts.poppins(
-                            fontSize: ScaleResponsiveHelper.getFontSize(
-                              Get.context!,
-                              11,
-                            ),
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-        ],
-      ),
+    DialogUtils.showCameraErrorDialog(
+      errorMessage: errorMessage,
+      onRetry: () => onInit(), // Pass onInit sebagai callback
     );
   }
 
@@ -1267,21 +639,6 @@ class RecognitionController extends GetxController {
     if (controller == null) return Size.zero;
     final previewSize = controller.value.previewSize;
     return Size(previewSize?.height ?? 0, previewSize?.width ?? 0);
-  }
-
-  void _testSimilarityFlow() {
-    print("=== TESTING SIMILARITY FLOW ===");
-
-    final employeeService = Get.find<EmployeeService>();
-
-    print(
-      "Last recognized employee: ${employeeService.lastRecognizedEmployee.value?.name}",
-    );
-    print("Last confidence: ${employeeService.employeeConfidence}");
-    print("Has recent recognition: ${employeeService.hasRecentRecognition}");
-    print("Recognition info: ${employeeService.lastRecognitionInfo}");
-
-    print("=== END TESTING ===");
   }
 
   @override

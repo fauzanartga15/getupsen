@@ -1,4 +1,5 @@
 // File: lib/data/services/location_service.dart
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -43,10 +44,10 @@ class LocationService extends GetxService {
         await _checkLocationService();
         return true;
       } else if (status.isDenied) {
-        print("❌ Location permission denied");
+        if (kDebugMode) print("❌ Location permission denied");
         return false;
       } else if (status.isPermanentlyDenied) {
-        print("❌ Location permission permanently denied");
+        if (kDebugMode) print("❌ Location permission permanently denied");
         // Bisa redirect ke settings
         await openAppSettings();
         return false;
@@ -54,7 +55,7 @@ class LocationService extends GetxService {
 
       return false;
     } catch (e) {
-      print("❌ Error requesting location permission: $e");
+      if (kDebugMode) print("❌ Error requesting location permission: $e");
       return false;
     }
   }
@@ -72,7 +73,7 @@ class LocationService extends GetxService {
       if (!isLocationEnabled.value) {
         final serviceEnabled = await Geolocator.isLocationServiceEnabled();
         if (!serviceEnabled) {
-          print("❌ Location service is disabled");
+          if (kDebugMode) print("❌ Location service is disabled");
           return null;
         }
         isLocationEnabled.value = true;
@@ -90,10 +91,14 @@ class LocationService extends GetxService {
       );
 
       currentPosition.value = position;
-      print("✅ Location obtained: ${position.latitude}, ${position.longitude}");
+      if (kDebugMode) {
+        print(
+          "✅ Location obtained: ${position.latitude}, ${position.longitude}",
+        );
+      }
       return position;
     } catch (e) {
-      print("❌ Error getting location: $e");
+      if (kDebugMode) print("❌ Error getting location: $e");
       return null;
     }
   }
@@ -104,7 +109,7 @@ class LocationService extends GetxService {
       final position = await getCurrentLocation();
       if (position != null) return position;
 
-      print("🔄 Retry getting location ${i + 1}/$maxRetries");
+      if (kDebugMode) print("🔄 Retry getting location ${i + 1}/$maxRetries");
       await Future.delayed(Duration(seconds: 2));
     }
 

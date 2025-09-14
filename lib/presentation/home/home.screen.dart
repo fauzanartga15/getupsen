@@ -24,14 +24,6 @@ class HomeScreen extends GetView<HomeController> {
         ),
         child: SafeArea(child: _buildScaledContent(context)),
       ),
-      // Debug info in development mode
-      // floatingActionButton: kDebugMode
-      //     ? FloatingActionButton(
-      //         mini: true,
-      //         onPressed: () => _showDebugInfo(context),
-      //         child: Icon(Icons.info),
-      //       )
-      //     : null,
     );
   }
 
@@ -340,34 +332,39 @@ class HomeScreen extends GetView<HomeController> {
 
     return Row(
       children: [
+        // PRESENT - menggunakan totalEmployees dari API
         Expanded(
           child: Obx(
             () => _buildStatCard(
               context,
               'PRESENT',
-              controller.presentCount.value,
+              controller.totalEmployees.value, // REAL DATA dari API
               AppColor.kSuccessGreen,
             ),
           ),
         ),
         SizedBox(width: spacing),
+
+        // CHECKED IN - menggunakan checkedIn dari API
         Expanded(
           child: Obx(
             () => _buildStatCard(
               context,
               'CHECKED IN',
-              controller.checkedInCount.value,
+              controller.checkedIn.value, // REAL DATA dari API
               AppColor.kAccentBlue,
             ),
           ),
         ),
         SizedBox(width: spacing),
+
+        // CHECKED OUT - menggunakan checkedOut dari API
         Expanded(
           child: Obx(
             () => _buildStatCard(
               context,
               'CHECKED OUT',
-              controller.checkedOutCount.value,
+              controller.checkedOut.value, // REAL DATA dari API
               AppColor.kStatusLate,
             ),
           ),
@@ -728,41 +725,4 @@ class HomeScreen extends GetView<HomeController> {
         return AppColor.kTextSecondary;
     }
   }
-
-  /*
-  void _showDebugInfo(BuildContext context) {
-    final info = ScaleResponsiveHelper.getDeviceInfo(context);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Scale Debug Info'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Device Type: ${info['deviceType']}'),
-            Text(
-              'Screen Size: ${info['screenWidth'].toStringAsFixed(0)}x${info['screenHeight'].toStringAsFixed(0)}',
-            ),
-            Text('Scale Factor: ${info['scaleFactor'].toStringAsFixed(3)}'),
-            Text('Width Scale: ${info['widthScale'].toStringAsFixed(3)}'),
-            Text('Height Scale: ${info['heightScale'].toStringAsFixed(3)}'),
-            SizedBox(height: 10),
-            Text('Base Design: 375x812 (iPhone 11)'),
-            Text(
-              'Needs Scrolling: ${ScaleResponsiveHelper.needsScrolling(context)}',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-*/
 }

@@ -1,5 +1,7 @@
 // File: lib/data/models/user_attendance_status_model.dart
 //melihat status clock in & clock out user
+import 'package:flutter/foundation.dart';
+
 class UserAttendanceStatus {
   final bool canCheckin;
   final bool canCheckout;
@@ -27,20 +29,22 @@ class UserAttendanceStatus {
     }
 
     // Debug logging
-    print("📌 DEBUG: Raw JSON data:");
-    print(
-      "   can_checkin raw: ${json['can_checkin']} (type: ${json['can_checkin'].runtimeType})",
-    );
-    print(
-      "   can_checkout raw: ${json['can_checkout']} (type: ${json['can_checkout'].runtimeType})",
-    );
+    if (kDebugMode) print("📌 DEBUG: Raw JSON data:");
+    if (kDebugMode)
+      print(
+        "   can_checkin raw: ${json['can_checkin']} (type: ${json['can_checkin'].runtimeType})",
+      );
+    if (kDebugMode)
+      print(
+        "   can_checkout raw: ${json['can_checkout']} (type: ${json['can_checkout'].runtimeType})",
+      );
 
     final canCheckinValue = parseBoolean(json['can_checkin']);
     final canCheckoutValue = parseBoolean(json['can_checkout']);
 
-    print("📌 DEBUG: After parsing:");
-    print("   canCheckin: $canCheckinValue");
-    print("   canCheckout: $canCheckoutValue");
+    if (kDebugMode) print("📌 DEBUG: After parsing:");
+    if (kDebugMode) print("   canCheckin: $canCheckinValue");
+    if (kDebugMode) print("   canCheckout: $canCheckoutValue");
 
     return UserAttendanceStatus(
       canCheckin: canCheckinValue,

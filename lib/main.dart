@@ -15,7 +15,7 @@ import 'utils/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize AuthService first before determining initial routeprint("🚀 Initializing AuthService...");
+  // Initialize AuthService first before determining initial routeif (kDebugMode) print("🚀 Initializing AuthService...");
   Get.put<AuthService>(AuthService(), permanent: true);
   Get.put<LocationService>(LocationService(), permanent: true);
   Get.put<EmployeeService>(EmployeeService(), permanent: true);

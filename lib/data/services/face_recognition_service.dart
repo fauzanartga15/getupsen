@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
@@ -21,7 +22,7 @@ class FaceRecognitionService {
   // Load TFLite model
   Future<bool> loadModel() async {
     try {
-      print("Loading MobileFaceNet model from $modelPath...");
+      if (kDebugMode) print("Loading MobileFaceNet model from $modelPath...");
 
       // Load model from assets
       _interpreter = await Interpreter.fromAsset(modelPath);
@@ -30,16 +31,16 @@ class FaceRecognitionService {
       final inputShape = _interpreter!.getInputTensor(0).shape;
       final outputShape = _interpreter!.getOutputTensor(0).shape;
 
-      print("Model loaded successfully!");
-      print("Input shape: $inputShape");
-      print("Output shape: $outputShape");
-      print("Expected input: [1, $inputSize, $inputSize, 3]");
-      print("Expected output: [1, $embeddingSize]");
+      if (kDebugMode) print("Model loaded successfully!");
+      if (kDebugMode) print("Input shape: $inputShape");
+      if (kDebugMode) print("Output shape: $outputShape");
+      if (kDebugMode) print("Expected input: [1, $inputSize, $inputSize, 3]");
+      if (kDebugMode) print("Expected output: [1, $embeddingSize]");
 
       _isModelLoaded = true;
       return true;
     } catch (e) {
-      print("Error loading model: $e");
+      if (kDebugMode) print("Error loading model: $e");
       _isModelLoaded = false;
       return false;
     }
@@ -51,7 +52,7 @@ class FaceRecognitionService {
   // Generate face embedding from cropped face image
   Future<List<double>?> generateEmbedding(Uint8List imageBytes) async {
     if (!_isModelLoaded) {
-      print("Model not loaded. Call loadModel() first.");
+      if (kDebugMode) print("Model not loaded. Call loadModel() first.");
       return null;
     }
 
@@ -59,14 +60,14 @@ class FaceRecognitionService {
       // Decode image
       final image = img.decodeImage(imageBytes);
       if (image == null) {
-        print("Failed to decode image");
+        if (kDebugMode) print("Failed to decode image");
         return null;
       }
 
       // Preprocess image for MobileFaceNet
       final preprocessed = _preprocessImage(image);
       if (preprocessed == null) {
-        print("Failed to preprocess image");
+        if (kDebugMode) print("Failed to preprocess image");
         return null;
       }
 
@@ -83,12 +84,13 @@ class FaceRecognitionService {
       // Normalize embedding (L2 normalization)
       final normalizedEmbedding = _normalizeEmbedding(embedding);
 
-      print(
-        "Generated embedding with ${normalizedEmbedding.length} dimensions",
-      );
+      if (kDebugMode)
+        print(
+          "Generated embedding with ${normalizedEmbedding.length} dimensions",
+        );
       return normalizedEmbedding;
     } catch (e) {
-      print("Error generating embedding: $e");
+      if (kDebugMode) print("Error generating embedding: $e");
       return null;
     }
   }
@@ -137,7 +139,7 @@ class FaceRecognitionService {
 
       return input;
     } catch (e) {
-      print("Error preprocessing image: $e");
+      if (kDebugMode) print("Error preprocessing image: $e");
       return null;
     }
   }
@@ -158,9 +160,10 @@ class FaceRecognitionService {
   // Calculate cosine similarity between two embeddings
   double calculateSimilarity(List<double> embedding1, List<double> embedding2) {
     if (embedding1.length != embedding2.length) {
-      print(
-        "Embedding dimensions mismatch: ${embedding1.length} vs ${embedding2.length}",
-      );
+      if (kDebugMode)
+        print(
+          "Embedding dimensions mismatch: ${embedding1.length} vs ${embedding2.length}",
+        );
       return 0.0;
     }
 
@@ -191,9 +194,9 @@ class FaceRecognitionService {
     try {
       _interpreter?.close();
       _isModelLoaded = false;
-      print("FaceRecognitionService disposed");
+      if (kDebugMode) print("FaceRecognitionService disposed");
     } catch (e) {
-      print("Error disposing FaceRecognitionService: $e");
+      if (kDebugMode) print("Error disposing FaceRecognitionService: $e");
     }
   }
 

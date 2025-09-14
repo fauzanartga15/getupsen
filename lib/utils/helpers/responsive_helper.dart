@@ -95,10 +95,10 @@ class ScaleResponsiveHelper {
 
   // Symmetric padding
   static EdgeInsets getSymmetricPadding(
-      BuildContext context, {
-        double horizontal = 0,
-        double vertical = 0,
-      }) {
+    BuildContext context, {
+    double horizontal = 0,
+    double vertical = 0,
+  }) {
     return getPadding(
       context,
       EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical),
@@ -113,10 +113,7 @@ class ScaleResponsiveHelper {
   // Size with scaling
   static Size getSize(BuildContext context, Size baseSize) {
     final scaleFactor = getScaleFactor(context);
-    return Size(
-      baseSize.width * scaleFactor,
-      baseSize.height * scaleFactor,
-    );
+    return Size(baseSize.width * scaleFactor, baseSize.height * scaleFactor);
   }
 
   // Get device info for debugging
@@ -176,7 +173,7 @@ class ScaleDebugInfo extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(8),
-      color: Colors.black.withOpacity(0.8),
+      color: Colors.black.withValues(alpha: 0.8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,11 +182,26 @@ class ScaleDebugInfo extends StatelessWidget {
             'Debug Info:',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-          Text('Device: ${info['deviceType']}', style: TextStyle(color: Colors.white)),
-          Text('Screen: ${info['screenWidth'].toStringAsFixed(0)}x${info['screenHeight'].toStringAsFixed(0)}', style: TextStyle(color: Colors.white)),
-          Text('Scale: ${info['scaleFactor'].toStringAsFixed(2)}', style: TextStyle(color: Colors.white)),
-          Text('Width Scale: ${info['widthScale'].toStringAsFixed(2)}', style: TextStyle(color: Colors.white)),
-          Text('Height Scale: ${info['heightScale'].toStringAsFixed(2)}', style: TextStyle(color: Colors.white)),
+          Text(
+            'Device: ${info['deviceType']}',
+            style: TextStyle(color: Colors.white),
+          ),
+          Text(
+            'Screen: ${info['screenWidth'].toStringAsFixed(0)}x${info['screenHeight'].toStringAsFixed(0)}',
+            style: TextStyle(color: Colors.white),
+          ),
+          Text(
+            'Scale: ${info['scaleFactor'].toStringAsFixed(2)}',
+            style: TextStyle(color: Colors.white),
+          ),
+          Text(
+            'Width Scale: ${info['widthScale'].toStringAsFixed(2)}',
+            style: TextStyle(color: Colors.white),
+          ),
+          Text(
+            'Height Scale: ${info['heightScale'].toStringAsFixed(2)}',
+            style: TextStyle(color: Colors.white),
+          ),
         ],
       ),
     );

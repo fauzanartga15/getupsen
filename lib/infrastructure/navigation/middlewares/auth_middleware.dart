@@ -1,4 +1,5 @@
 // File: lib/infrastructure/navigation/middlewares/auth_middleware.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -15,13 +16,13 @@ class AuthMiddleware extends GetMiddleware {
 
     // Jika user belum login dan mencoba akses selain login
     if (!authService.isLoggedIn.value && route != Routes.LOGIN) {
-      print("🚫 Access denied - redirecting to login");
+      if (kDebugMode) print("🚫 Access denied - redirecting to login");
       return RouteSettings(name: Routes.LOGIN);
     }
 
     // Jika user sudah login dan mencoba akses login page
     if (authService.isLoggedIn.value && route == Routes.LOGIN) {
-      print("✅ Already logged in - redirecting to home");
+      if (kDebugMode) print("✅ Already logged in - redirecting to home");
       return RouteSettings(name: Routes.HOME);
     }
 
@@ -45,7 +46,7 @@ class AdminMiddleware extends GetMiddleware {
     // Check if user is admin
     final user = authService.currentUser.value;
     if (user == null || !user.isAdmin) {
-      print("🚫 Admin access required");
+      if (kDebugMode) print("🚫 Admin access required");
       // Could redirect to unauthorized page or home
       return RouteSettings(name: Routes.HOME);
     }

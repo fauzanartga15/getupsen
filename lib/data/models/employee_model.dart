@@ -1,4 +1,6 @@
 // File: lib/data/models/employee_model.dart
+import 'package:flutter/foundation.dart';
+
 class EmployeeModel {
   final int id;
   final String name;
@@ -105,7 +107,7 @@ class EmployeeModel {
           .map((e) => double.tryParse(e.trim()) ?? 0.0)
           .toList();
     } catch (e) {
-      print("Error parsing embedding for $name: $e");
+      if (kDebugMode) print("Error parsing embedding for $name: $e");
       return [];
     }
   }

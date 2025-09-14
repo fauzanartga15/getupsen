@@ -1,6 +1,7 @@
 // File: lib/data/services/dashboard_service.dart
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,7 +18,7 @@ class DashboardService extends GetxService {
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
 
-      print("📊 Fetching dashboard stats...");
+      if (kDebugMode) print("📊 Fetching dashboard stats...");
 
       final response = await http
           .get(
@@ -30,32 +31,36 @@ class DashboardService extends GetxService {
           )
           .timeout(Duration(seconds: 30));
 
-      print("📊 Dashboard API Response:");
-      print("   Status Code: ${response.statusCode}");
-      print("   Response Body: ${response.body}");
+      if (kDebugMode) print("📊 Dashboard API Response:");
+      if (kDebugMode) print("   Status Code: ${response.statusCode}");
+      if (kDebugMode) print("   Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final dashboardStats = DashboardStats.fromJson(data);
 
-        print("✅ Dashboard stats retrieved successfully");
-        print(
-          "   Recent activities count: ${dashboardStats.data.recentActivities.length}",
-        );
+        if (kDebugMode) print("✅ Dashboard stats retrieved successfully");
+        if (kDebugMode) {
+          print(
+            "   Recent activities count: ${dashboardStats.data.recentActivities.length}",
+          );
+        }
 
         return dashboardStats;
       } else if (response.statusCode == 401) {
-        print("❌ Unauthorized - token expired");
+        if (kDebugMode) print("❌ Unauthorized - token expired");
         // Handle token expiry
         return null;
       } else {
-        print(
-          "❌ Failed to get dashboard stats - Status: ${response.statusCode}",
-        );
+        if (kDebugMode) {
+          print(
+            "❌ Failed to get dashboard stats - Status: ${response.statusCode}",
+          );
+        }
         return null;
       }
     } catch (e) {
-      print("❌ Error getting dashboard stats: $e");
+      if (kDebugMode) print("❌ Error getting dashboard stats: $e");
       return null;
     }
   }
@@ -66,7 +71,7 @@ class DashboardService extends GetxService {
       final dashboardStats = await getDashboardStats();
       return dashboardStats?.data.recentActivities ?? [];
     } catch (e) {
-      print("❌ Error getting recent activities: $e");
+      if (kDebugMode) print("❌ Error getting recent activities: $e");
       return [];
     }
   }

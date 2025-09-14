@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
@@ -18,22 +19,22 @@ class FacePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    print("=== FacePainter paint called ===");
-    print("imageFile is null: ${imageFile == null}");
-    print("facesList length: ${facesList.length}");
-    print("faceNames: $faceNames");
-    print("Canvas size: ${size.width} x ${size.height}");
+    if (kDebugMode) print("=== FacePainter paint called ===");
+    if (kDebugMode) print("imageFile is null: ${imageFile == null}");
+    if (kDebugMode) print("facesList length: ${facesList.length}");
+    if (kDebugMode) print("faceNames: $faceNames");
+    if (kDebugMode) print("Canvas size: ${size.width} x ${size.height}");
 
     // Gambar image terlebih dahulu sebagai background
     if (imageFile != null) {
       canvas.drawImage(imageFile, Offset.zero, Paint());
-      print("Image drawn successfully");
+      if (kDebugMode) print("Image drawn successfully");
     }
 
     // Gambar rectangle dan label untuk setiap wajah
     for (int i = 0; i < facesList.length; i++) {
       Face face = facesList[i];
-      print("Drawing face $i at ${face.boundingBox}");
+      if (kDebugMode) print("Drawing face $i at ${face.boundingBox}");
 
       // Tentukan warna berdasarkan recognition status (jika ada)
       final bool recognized = isRecognized?[i] ?? false;
@@ -63,7 +64,7 @@ class FacePainter extends CustomPainter {
         faceLabel = faceNames[i] ?? 'Face ${i + 1}';
       }
 
-      print("Face $i label: '$faceLabel'");
+      if (kDebugMode) print("Face $i label: '$faceLabel'");
 
       // HITUNG font size berdasarkan ukuran wajah
       double faceWidth = face.boundingBox.width;
@@ -111,7 +112,8 @@ class FacePainter extends CustomPainter {
         ),
       );
 
-      print("Face $i label '$faceLabel' painted with fontSize: $fontSize");
+      if (kDebugMode)
+        print("Face $i label '$faceLabel' painted with fontSize: $fontSize");
     }
   }
 

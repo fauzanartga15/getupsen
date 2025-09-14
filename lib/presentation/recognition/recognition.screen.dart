@@ -221,7 +221,6 @@ class RecognitionScreen extends GetView<RecognitionController> {
       }
 
       return Container(
-        key: ValueKey('camera_${this.controller.isBackCamera.value}'),
         color: Colors.black,
         width: double.infinity,
         height: double.infinity,
@@ -299,7 +298,6 @@ class RecognitionScreen extends GetView<RecognitionController> {
         }
 
         return GestureDetector(
-          onTapDown: (details) => _handleFaceTap(details),
           child: CustomPaint(
             painter: EnhancedFaceOverlayPainter(
               faces: controller.faces,
@@ -309,35 +307,11 @@ class RecognitionScreen extends GetView<RecognitionController> {
               faceConfidences: controller.faceConfidences,
               isRecognized: controller.isRecognized,
               selectedFaceIndex: controller.selectedFaceIndex.value,
-              isBackCamera: controller.isBackCamera.value,
             ),
           ),
         );
       }),
     );
-  }
-
-  void _handleFaceTap(TapDownDetails details) {
-    final tapPosition = details.localPosition;
-
-    // Find which face was tapped
-    for (int i = 0; i < controller.faces.length; i++) {
-      if (controller.recognizedEmployees[i] != null) {
-        // Calculate face position on screen
-        final faceRect = _transformFaceRect(i);
-        if (faceRect.contains(tapPosition)) {
-          controller.selectFace(i);
-          break;
-        }
-      }
-    }
-  }
-
-  Rect _transformFaceRect(int faceIndex) {
-    if (faceIndex >= controller.faces.length) return Rect.zero;
-
-    final face = controller.faces[faceIndex];
-    return face.boundingBox;
   }
 
   Widget _buildRecognitionToggleButton(BuildContext context) {

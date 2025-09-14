@@ -1,6 +1,7 @@
 // File: lib/data/services/employee_service.dart
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,9 +42,10 @@ class EmployeeService extends GetxService {
     lastRecognitionConfidence.value = confidence;
     lastRecognitionTime.value = DateTime.now();
 
-    print(
-      "✅ Last recognized employee set: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
-    );
+    if (kDebugMode)
+      print(
+        "✅ Last recognized employee set: ${employee.name} (${confidence.toStringAsFixed(1)}%)",
+      );
   }
 
   // 🆕 NEW: Get last recognition confidence
@@ -75,7 +77,7 @@ class EmployeeService extends GetxService {
     lastRecognizedEmployee.value = null;
     lastRecognitionConfidence.value = 0.0;
     lastRecognitionTime.value = null;
-    print("🧹 Last recognition data cleared");
+    if (kDebugMode) print("🧹 Last recognition data cleared");
   }
 
   // Load cached employees from local storage
@@ -96,17 +98,19 @@ class EmployeeService extends GetxService {
           cachedEmployees.where((emp) => emp.hasFaceEmbedding).toList(),
         );
 
-        print("✅ Loaded ${cachedEmployees.length} cached employees");
-        print(
-          "✅ ${employeesWithEmbedding.length} employees with face embedding",
-        );
+        if (kDebugMode)
+          print("✅ Loaded ${cachedEmployees.length} cached employees");
+        if (kDebugMode)
+          print(
+            "✅ ${employeesWithEmbedding.length} employees with face embedding",
+          );
       }
 
       if (lastSyncString != null) {
         lastSyncTime.value = DateTime.tryParse(lastSyncString);
       }
     } catch (e) {
-      print("❌ Error loading cached employees: $e");
+      if (kDebugMode) print("❌ Error loading cached employees: $e");
     }
   }
 
@@ -120,9 +124,10 @@ class EmployeeService extends GetxService {
       await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
 
       lastSyncTime.value = DateTime.now();
-      print("✅ Saved ${employeesList.length} employees to cache");
+      if (kDebugMode)
+        print("✅ Saved ${employeesList.length} employees to cache");
     } catch (e) {
-      print("❌ Error saving employees to cache: $e");
+      if (kDebugMode) print("❌ Error saving employees to cache: $e");
     }
   }
 
@@ -130,7 +135,7 @@ class EmployeeService extends GetxService {
   void _checkAutoSync() {
     // Wait for auth token
     if (_authService.authToken.value.isEmpty) {
-      print("⏰ Waiting for auth token...");
+      if (kDebugMode) print("⏰ Waiting for auth token...");
       Future.delayed(Duration(seconds: 1), _checkAutoSync);
       return;
     }
@@ -138,7 +143,7 @@ class EmployeeService extends GetxService {
     final lastSync = lastSyncTime.value;
     if (lastSync == null) {
       // No previous sync, sync immediately
-      print("🔄 First time sync...");
+      if (kDebugMode) print("🔄 First time sync...");
       syncEmployees();
       return;
     }
@@ -146,26 +151,31 @@ class EmployeeService extends GetxService {
     final hoursSinceLastSync = DateTime.now().difference(lastSync).inHours;
 
     if (hoursSinceLastSync >= _syncIntervalHours) {
-      print("🔄 Auto sync triggered - ${hoursSinceLastSync}h since last sync");
+      if (kDebugMode)
+        print(
+          "🔄 Auto sync triggered - ${hoursSinceLastSync}h since last sync",
+        );
       syncEmployees();
     } else {
-      print("✅ Sync not needed - ${hoursSinceLastSync}h since last sync");
+      if (kDebugMode)
+        print("✅ Sync not needed - ${hoursSinceLastSync}h since last sync");
     }
   }
 
   // Sync employees from server
   Future<bool> syncEmployees() async {
     if (isSyncing.value) return false;
-    print("🔄 Starting employee sync...");
+    if (kDebugMode) print("🔄 Starting employee sync...");
 
     try {
       isSyncing(true);
-      print("🔄 Starting employee sync...");
+      if (kDebugMode) print("🔄 Starting employee sync...");
 
       final config = ConfigEnvironments.getEnvironments();
       final baseUrl = config['url']!;
-      print("🌐 Base URL: $baseUrl"); // DEBUG
-      print("🔑 Auth token: ${_authService.authToken.value}"); // DEBUG
+      if (kDebugMode) print("🌐 Base URL: $baseUrl"); // DEBUG
+      if (kDebugMode)
+        print("🔑 Auth token: ${_authService.authToken.value}"); // DEBUG
 
       // Fetch all users from company
       final usersResponse = await http.get(
@@ -177,8 +187,10 @@ class EmployeeService extends GetxService {
         },
       );
 
-      print("📡 Users API response: ${usersResponse.statusCode}"); // DEBUG
-      print("📡 Response body: ${usersResponse.body} "); //Coba lagi
+      if (kDebugMode)
+        print("📡 Users API response: ${usersResponse.statusCode}"); // DEBUG
+      if (kDebugMode)
+        print("📡 Response body: ${usersResponse.body} "); //Coba lagi
 
       if (usersResponse.statusCode == 200) {
         final usersData = jsonDecode(usersResponse.body);
@@ -198,19 +210,24 @@ class EmployeeService extends GetxService {
           // Cache employees
           await _saveEmployeesToCache(allEmployees);
 
-          print("✅ Synced ${allEmployees.length} employees from server");
-          print(
-            "✅ ${employeesWithEmbedding.length} employees with face embedding",
-          );
+          if (kDebugMode)
+            print("✅ Synced ${allEmployees.length} employees from server");
+          if (kDebugMode)
+            print(
+              "✅ ${employeesWithEmbedding.length} employees with face embedding",
+            );
 
           return true;
         }
       }
 
-      print("❌ Failed to sync employees - Status: ${usersResponse.statusCode}");
+      if (kDebugMode)
+        print(
+          "❌ Failed to sync employees - Status: ${usersResponse.statusCode}",
+        );
       return false;
     } catch (e) {
-      print("❌ Error syncing employees: $e");
+      if (kDebugMode) print("❌ Error syncing employees: $e");
       return false;
     } finally {
       isSyncing(false);
@@ -261,9 +278,10 @@ class EmployeeService extends GetxService {
         .clamp(0.0, 100.0);
 
     if (bestMatch != null && confidencePercentage >= confidenceThreshold) {
-      print(
-        "✅ Employee found: ${bestMatch.name} (${confidencePercentage.toStringAsFixed(1)}%)",
-      );
+      if (kDebugMode)
+        print(
+          "✅ Employee found: ${bestMatch.name} (${confidencePercentage.toStringAsFixed(1)}%)",
+        );
 
       return {
         'employee': bestMatch,
@@ -272,7 +290,10 @@ class EmployeeService extends GetxService {
       };
     }
 
-    print("❌ No employee match found above ${confidenceThreshold}% threshold");
+    if (kDebugMode)
+      print(
+        "❌ No employee match found above ${confidenceThreshold}% threshold",
+      );
     return null;
   }
 
@@ -340,9 +361,9 @@ class EmployeeService extends GetxService {
       // 🆕 NEW: Clear recognition data too
       clearLastRecognition();
 
-      print("✅ Employee cache cleared");
+      if (kDebugMode) print("✅ Employee cache cleared");
     } catch (e) {
-      print("❌ Error clearing employee cache: $e");
+      if (kDebugMode) print("❌ Error clearing employee cache: $e");
     }
   }
 }

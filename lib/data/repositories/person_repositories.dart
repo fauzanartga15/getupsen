@@ -27,10 +27,10 @@
 //       );
 
 //       final id = await _databaseHelper.insertPerson(person);
-//       print("Person '$name' saved successfully with ID: $id");
+//       if (kDebugMode) print("Person '$name' saved successfully with ID: $id");
 //       return id;
 //     } catch (e) {
-//       print("Error saving person '$name': $e");
+//       if (kDebugMode) print("Error saving person '$name': $e");
 //       throw Exception("Failed to save person: $e");
 //     }
 //   }
@@ -47,7 +47,7 @@
 //           final embeddingJson = jsonDecode(person.embedding);
 //           embedding = List<double>.from(embeddingJson);
 //         } catch (e) {
-//           print("Error parsing embedding for person ${person.name}: $e");
+//           if (kDebugMode) print("Error parsing embedding for person ${person.name}: $e");
 //           embedding = [];
 //         }
 
@@ -61,7 +61,7 @@
 //         };
 //       }).toList();
 //     } catch (e) {
-//       print("Error getting all persons: $e");
+//       if (kDebugMode) print("Error getting all persons: $e");
 //       return [];
 //     }
 //   }
@@ -96,14 +96,14 @@
 //       }
 
 //       if (mostSimilarPerson != null) {
-//         print(
+//         if (kDebugMode) print(
 //           "Found similar person: ${mostSimilarPerson['name']} (similarity: ${mostSimilarPerson['similarity']})",
 //         );
 //       }
 
 //       return mostSimilarPerson;
 //     } catch (e) {
-//       print("Error finding similar person: $e");
+//       if (kDebugMode) print("Error finding similar person: $e");
 //       return null;
 //     }
 //   }
@@ -144,7 +144,7 @@
 //       final result = await _databaseHelper.updatePerson(updatedPerson);
 //       return result > 0;
 //     } catch (e) {
-//       print("Error updating person name: $e");
+//       if (kDebugMode) print("Error updating person name: $e");
 //       return false;
 //     }
 //   }
@@ -155,7 +155,7 @@
 //       final result = await _databaseHelper.deletePerson(personId);
 //       return result > 0;
 //     } catch (e) {
-//       print("Error deleting person: $e");
+//       if (kDebugMode) print("Error deleting person: $e");
 //       return false;
 //     }
 //   }
@@ -166,7 +166,7 @@
 //       final totalPersons = await _databaseHelper.getPersonCount();
 //       return {'totalPersons': totalPersons};
 //     } catch (e) {
-//       print("Error getting statistics: $e");
+//       if (kDebugMode) print("Error getting statistics: $e");
 //       return {'totalPersons': 0};
 //     }
 //   }
@@ -175,9 +175,9 @@
 //   Future<void> clearAllData() async {
 //     try {
 //       await _databaseHelper.clearAllPersons();
-//       print("All person data cleared");
+//       if (kDebugMode) print("All person data cleared");
 //     } catch (e) {
-//       print("Error clearing data: $e");
+//       if (kDebugMode) print("Error clearing data: $e");
 //     }
 //   }
 // }

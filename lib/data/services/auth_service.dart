@@ -1,5 +1,6 @@
 // File: lib/data/services/auth_service.dart
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,10 +51,11 @@ class AuthService extends GetxService {
         currentUser.value = UserModel.fromJson(userJson);
         isLoggedIn.value = true;
 
-        print("✅ Loaded stored auth: ${currentUser.value?.name}");
+        if (kDebugMode)
+          print("✅ Loaded stored auth: ${currentUser.value?.name}");
       }
     } catch (e) {
-      print("❌ Error loading stored auth: $e");
+      if (kDebugMode) print("❌ Error loading stored auth: $e");
     }
   }
 
@@ -73,16 +75,16 @@ class AuthService extends GetxService {
 
       await Future.delayed(Duration(milliseconds: 50));
 
-      print("✅ Auth data saved: ${user.name}");
+      if (kDebugMode) print("✅ Auth data saved: ${user.name}");
     } catch (e) {
-      print("❌ Error saving auth data: $e");
+      if (kDebugMode) print("❌ Error saving auth data: $e");
     }
   }
 
   // Login method
   Future<bool> login(String email, String password) async {
     try {
-      print("🔐 Attempting login for: $email");
+      if (kDebugMode) print("🔐 Attempting login for: $email");
 
       final config = ConfigEnvironments.getEnvironments();
       final url = Uri.parse('${config['url']}login-tablet');
@@ -98,11 +100,11 @@ class AuthService extends GetxService {
           )
           .timeout(Duration(seconds: 30));
 
-      print("📡 Login response status: ${response.statusCode}");
+      if (kDebugMode) print("📡 Login response status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("✅ Login successful");
+        if (kDebugMode) print("✅ Login successful");
 
         // Parse user data
         final user = UserModel.fromJson(data['user']);
@@ -123,7 +125,7 @@ class AuthService extends GetxService {
         throw Exception(message);
       }
     } catch (e) {
-      print("❌ Login error: $e");
+      if (kDebugMode) print("❌ Login error: $e");
 
       if (e.toString().contains('TimeoutException')) {
         throw Exception('Connection timeout');
@@ -138,7 +140,7 @@ class AuthService extends GetxService {
   // Logout method
   Future<void> logout() async {
     try {
-      print("🚪 Logging out user: ${currentUser.value?.name}");
+      if (kDebugMode) print("🚪 Logging out user: ${currentUser.value?.name}");
 
       final prefs = await SharedPreferences.getInstance();
 
@@ -153,9 +155,9 @@ class AuthService extends GetxService {
       companyId.value = 0;
       isLoggedIn.value = false;
 
-      print("✅ Logout successful");
+      if (kDebugMode) print("✅ Logout successful");
     } catch (e) {
-      print("❌ Logout error: $e");
+      if (kDebugMode) print("❌ Logout error: $e");
     }
   }
 
@@ -168,7 +170,7 @@ class AuthService extends GetxService {
       // For now, just check if token exists
       return authToken.value.isNotEmpty;
     } catch (e) {
-      print("❌ Token validation error: $e");
+      if (kDebugMode) print("❌ Token validation error: $e");
       return false;
     }
   }

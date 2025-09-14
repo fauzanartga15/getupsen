@@ -1,5 +1,6 @@
 // File: lib/presentation/confirmation/controllers/confirmation.controller.dart
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../../data/models/employee_model.dart';
@@ -44,11 +45,11 @@ class ConfirmationController extends GetxController {
     userStatus = args['userStatus'] as UserAttendanceStatus?;
     confidence = (args['confidence'] as double?) ?? 0.0;
 
-    print("✅ Confirmation loaded:");
-    print("   Employee: ${employee?.name}");
-    print("   Attendance Status: ${attendanceResult?.status}");
-    print("   Confidence: ${confidence.toStringAsFixed(1)}%");
-    print("   Message: ${attendanceResult?.message}");
+    if (kDebugMode) print("✅ Confirmation loaded:");
+    if (kDebugMode) print("   Employee: ${employee?.name}");
+    if (kDebugMode) print("   Attendance Status: ${attendanceResult?.status}");
+    if (kDebugMode) print("   Confidence: ${confidence.toStringAsFixed(1)}%");
+    if (kDebugMode) print("   Message: ${attendanceResult?.message}");
   }
 
   void _startCountdown() {
@@ -67,17 +68,17 @@ class ConfirmationController extends GetxController {
         timer.cancel();
         _navigateToHome();
       }
-      print("Countdown started: ${countdown.value}");
+      if (kDebugMode) print("Countdown started: ${countdown.value}");
     });
   }
 
   void _navigateToHome() {
-    print("🏠 Navigating to home from confirmation");
+    if (kDebugMode) print("🏠 Navigating to home from confirmation");
     Get.offAllNamed(Routes.HOME);
   }
 
   void cancelAutoRedirect() {
-    print("⏸️ Auto redirect cancelled");
+    if (kDebugMode) print("⏸️ Auto redirect cancelled");
     _autoRedirectTimer?.cancel();
     _countdownTimer?.cancel();
   }

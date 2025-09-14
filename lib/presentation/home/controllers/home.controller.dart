@@ -1,4 +1,4 @@
-// File: lib/presentation/home/controllers/home_controller.dart (Scale Responsive Version)
+// File: lib/presentation/home/controllers/home_controller.dart (Updated for real data)
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -30,9 +30,11 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
 
   // Reactive variables
   var currentTime = ''.obs;
-  var presentCount = 42.obs;
-  var checkedInCount = 38.obs;
-  var checkedOutCount = 15.obs;
+
+  // Remove old hardcoded values, use real data from API
+  // var presentCount = 42.obs;      // REMOVED
+  // var checkedInCount = 38.obs;    // REMOVED
+  // var checkedOutCount = 15.obs;   // REMOVED
 
   // Loading states
   var isLoadingDashboard = false.obs;
@@ -42,10 +44,10 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
   var dashboardStats = Rxn<DashboardStats>();
   var recentActivities = <RecentActivity>[].obs;
 
-  // Today stats (for other parts of dashboard)
-  var totalEmployees = 0.obs;
-  var checkedIn = 0.obs;
-  var checkedOut = 0.obs;
+  // Today stats (now using real data from API)
+  var totalEmployees = 0.obs; // This is PRESENT count
+  var checkedIn = 0.obs; // This is CHECKED IN count
+  var checkedOut = 0.obs; // This is CHECKED OUT count
   var absentCount = 0.obs;
 
   @override
@@ -101,7 +103,7 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
   Future<void> loadDashboardData() async {
     try {
       isLoadingDashboard(true);
-      print("📄 Loading dashboard data...");
+      if (kDebugMode) print("📊 Loading dashboard data...");
 
       final stats = await _dashboardService.getDashboardStats();
 
@@ -111,23 +113,27 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
         // Update recent activities
         recentActivities.assignAll(stats.data.recentActivities);
 
-        // Update today stats
+        // Update today stats with REAL DATA from API
         final today = stats.data.today;
-        totalEmployees.value = today.totalEmployees;
-        checkedIn.value = today.checkedIn;
-        checkedOut.value = today.checkedOut;
+        totalEmployees.value = today.totalEmployees; // PRESENT count
+        checkedIn.value = today.checkedIn; // CHECKED IN count
+        checkedOut.value = today.checkedOut; // CHECKED OUT count
         absentCount.value = today.absentCount;
 
-        print("✅ Dashboard data loaded successfully");
-        print("   Recent activities: ${recentActivities.length}");
-        print("   Total employees: ${totalEmployees.value}");
+        if (kDebugMode) print("✅ Dashboard data loaded successfully");
+        if (kDebugMode)
+          print("   Recent activities: ${recentActivities.length}");
+        if (kDebugMode)
+          print("   Total employees (PRESENT): ${totalEmployees.value}");
+        if (kDebugMode) print("   Checked in: ${checkedIn.value}");
+        if (kDebugMode) print("   Checked out: ${checkedOut.value}");
       } else {
-        print("❌ Failed to load dashboard data");
+        if (kDebugMode) print("❌ Failed to load dashboard data");
         // Load fallback/mock data if needed
         _loadFallbackData();
       }
     } catch (e) {
-      print("❌ Error loading dashboard data: $e");
+      if (kDebugMode) print("❌ Error loading dashboard data: $e");
       _loadFallbackData();
     } finally {
       isLoadingDashboard(false);
@@ -156,7 +162,7 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
 
   // Load fallback data when API fails
   void _loadFallbackData() {
-    print("📄 Loading fallback data...");
+    if (kDebugMode) print("📄 Loading fallback data...");
 
     // Convert mock data to RecentActivity objects for consistency
     final mockActivities = [
@@ -188,7 +194,7 @@ class HomeController extends GetxController with GetTickerProviderStateMixin {
 
     recentActivities.assignAll(mockActivities);
 
-    // Mock today stats
+    // Mock today stats (fallback data)
     totalEmployees.value = 10;
     checkedIn.value = 3;
     checkedOut.value = 0;

@@ -1,4 +1,5 @@
 // File: lib/data/local/database_helper.dart
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
@@ -57,14 +58,14 @@ class DatabaseHelper {
       )
     ''');
 
-    print("Database table '$_tableName' created successfully");
+    if (kDebugMode) print("Database table '$_tableName' created successfully");
   }
 
   // Insert person
   Future<int> insertPerson(Person person) async {
     final db = await database;
     final id = await db.insert(_tableName, person.toMap());
-    print("Person inserted with ID: $id");
+    if (kDebugMode) print("Person inserted with ID: $id");
     return id;
   }
 
@@ -139,7 +140,7 @@ class DatabaseHelper {
   Future<void> clearAllPersons() async {
     final db = await database;
     await db.delete(_tableName);
-    print("All persons cleared from database");
+    if (kDebugMode) print("All persons cleared from database");
   }
 
   // Close database
