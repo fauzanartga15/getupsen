@@ -14,3 +14,10 @@ v1.1.0 (2025-09-12)
 - Initial Attendance 
 - permission fitur & handler
 
+
+
+- HRD & Mangement butuh info karyawan yang sudah daftar face embedding
+- arttach real face & emnbedding
+- Fix Mobile recognition
+
+

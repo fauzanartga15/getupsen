@@ -1,5 +1,3 @@
-
-// Tambahkan di bagian atas file, setelah plugins
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -12,14 +10,13 @@ if (keystorePropertiesFile.exists()) {
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.infazio.upsen_entrance"
     compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "29.0.14033849"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -31,17 +28,14 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.infazio.upsen_entrance"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
-   signingConfigs {
+    signingConfigs {
         create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String?
             keyPassword = keystoreProperties["keyPassword"] as String?
@@ -52,10 +46,7 @@ android {
 
     buildTypes {
         release {
-            // Ganti signingConfig dari debug ke release
             signingConfig = signingConfigs.getByName("release")
-            
-            // Opsional: tambahkan konfigurasi optimasi
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -67,8 +58,14 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("androidx.startup:startup-runtime:1.1.1")
 }

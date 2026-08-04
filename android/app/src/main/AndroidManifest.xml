@@ -19,8 +19,13 @@
     <application
         android:label="Upsen Entrance"
         android:name="${applicationName}"
-         android:enableOnBackInvokedCallback="true" 
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/launcher_icon">
+
+        <!-- Pertahankan orientasi portrait di layar besar (>=600dp) pada Android 16 / API 36 -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

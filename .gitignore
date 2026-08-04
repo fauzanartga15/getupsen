@@ -43,6 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/app/build/
+/android/build/
+/.gradle/
+
+# Local VS Code launch configuration (per-machine, berisi config device/emulator lokal)
+/.vscode/launch.json
+
+# Environment / secrets (jika suatu saat dipakai)
+.env
+*.env
+.env.*
+!.env.example
 
 #key
 /android/key.properties
